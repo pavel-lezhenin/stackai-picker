@@ -276,3 +276,95 @@ describe('Security: invalid KB ID in path', () => {
     expect([404, 422]).toContain(res.status);
   });
 });
+
+// ─── KB create: body validation (lax server-side validation) ─────────────────
+
+describe('KB create: body validation', () => {
+  it('[DISCOVERY] POST /v1/knowledge-bases with empty connection_source_ids returns 2xx (no server validation)', async () => {
+    // UNEXPECTED: The API does NOT reject empty connection_source_ids.
+    // It creates a KB with no sources and returns 200. Validation must happen client-side.
+    const res = await fetch(`${ACTUAL_BASE_URL}/v1/knowledge-bases`, {
+      method: 'POST',
+      headers: jsonHeaders(authHeaders),
+      body: JSON.stringify({
+        connection_id: connectionId,
+        connection_source_ids: [],
+        indexing_params: {
+          ocr: false,
+          embedding_params: { embedding_model: 'openai.text-embedding-3-large', api_key: null },
+          chunker_params: { chunk_size: 2500, chunk_overlap: 100, chunker_type: 'sentence' },
+        },
+        org_level_role: null,
+      }),
+    });
+    expect(res.ok).toBe(true);
+  });
+
+  it('[DISCOVERY] POST /v1/knowledge-bases with missing connection_id returns 2xx (no server validation)', async () => {
+    // UNEXPECTED: The API also does NOT reject a missing connection_id at create time.
+    // This means input validation must be enforced at the BFF layer (which it is via Zod).
+    const res = await fetch(`${ACTUAL_BASE_URL}/v1/knowledge-bases`, {
+      method: 'POST',
+      headers: jsonHeaders(authHeaders),
+      body: JSON.stringify({ connection_source_ids: ['some-id'] }),
+    });
+    expect(res.ok).toBe(true);
+  });
+});
+
+// ─── Pagination: KB resources cursor fields ───────────────────────────────────
+
+describe('Pagination: KB resources cursor fields', () => {
+  it('GET /v1/knowledge-bases/{kbId}/resources/children response has data array', async () => {
+    const res = await fetch(
+      `${ACTUAL_BASE_URL}/v1/knowledge-bases/${knowledgeBaseId}/resources/children?resource_path=/`,
+      { headers: authHeaders },
+    );
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as Record<string, unknown>;
+    expect(Array.isArray(json['data'])).toBe(true);
+  });
+
+  it('KB resources cursor fields are nullable strings when present', async () => {
+    // Same ISS-4 cursor field behavior as connection resources
+    const res = await fetch(
+      `${ACTUAL_BASE_URL}/v1/knowledge-bases/${knowledgeBaseId}/resources/children?resource_path=/`,
+      { headers: authHeaders },
+    );
+    const json = (await res.json()) as Record<string, unknown>;
+    for (const field of ['next_cursor', 'current_cursor']) {
+      if (field in json) {
+        expect(json[field] === null || typeof json[field] === 'string').toBe(true);
+      }
+    }
+  });
+});
+
+// ─── Auth boundaries: KB endpoints ───────────────────────────────────────────
+
+describe('Auth boundaries: KB endpoints reject unauthenticated requests', () => {
+  it('GET /v1/knowledge-bases/{kbId}/resources/children without auth returns 401 or 403', async () => {
+    const res = await fetch(
+      `${ACTUAL_BASE_URL}/v1/knowledge-bases/${knowledgeBaseId}/resources/children?resource_path=/`,
+    );
+    expect([401, 403]).toContain(res.status);
+  });
+
+  it('POST /v1/knowledge-bases/{kbId}/sync without auth returns 401 or 403', async () => {
+    const url = new URL(`${ACTUAL_BASE_URL}/v1/knowledge-bases/${knowledgeBaseId}/sync`);
+    url.searchParams.set('org_id', orgId);
+    const res = await fetch(url.toString(), { method: 'POST' });
+    expect([401, 403]).toContain(res.status);
+  });
+
+  it('DELETE /v1/knowledge-bases/{kbId}/resources without auth returns 401 or 403', async () => {
+    const url = new URL(`${ACTUAL_BASE_URL}/v1/knowledge-bases/${knowledgeBaseId}/resources`);
+    url.searchParams.set('resource_path', '/any-file.pdf');
+    const res = await fetch(url.toString(), {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resource_path: '/any-file.pdf' }),
+    });
+    expect([401, 403]).toContain(res.status);
+  });
+});
