@@ -28,7 +28,9 @@ async function acquireToken(): Promise<string> {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Auth failed (${response.status}): ${text}`);
+    // Log full upstream error server-side only — never leak Supabase internals to the client
+    console.error(`[auth] acquireToken failed (${response.status}):`, text);
+    throw new Error(`Authentication failed (${response.status})`);
   }
 
   const json: unknown = await response.json();

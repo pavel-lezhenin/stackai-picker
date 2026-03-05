@@ -41,8 +41,9 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const text = await response.text();
+      console.error(`[BFF /knowledge-bases POST] upstream ${response.status}:`, text);
       return NextResponse.json(
-        { error: `Failed to create knowledge base: ${text}`, status: response.status },
+        { error: `Failed to create knowledge base (${response.status})`, status: response.status },
         { status: response.status },
       );
     }

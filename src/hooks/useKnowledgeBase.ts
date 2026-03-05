@@ -115,15 +115,17 @@ export function useSyncKB() {
 
 // --- Delete KB Resource (with optimistic update) ---
 
-export function useDeleteKBResource(kbId: string) {
+export function useDeleteKBResource(kbId: string | undefined) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (resourcePath: string) =>
-      apiFetch<{ success: boolean }>(`/knowledge-bases/${kbId}/resources`, {
+    mutationFn: (resourcePath: string) => {
+      if (!kbId) throw new Error('No Knowledge Base selected. Index files first.');
+      return apiFetch<{ success: boolean }>(`/knowledge-bases/${kbId}/resources`, {
         method: 'DELETE',
         body: JSON.stringify({ resource_path: resourcePath }),
-      }),
+      });
+    },
 
     onMutate: async (resourcePath) => {
       // Optimistically remove the resource from all KB resource lists

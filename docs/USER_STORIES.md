@@ -126,20 +126,20 @@
 
 **Acceptance Criteria:**
 
-- [ ] On mount, fetch and display root-level resources
-- [ ] Each row shows: file type icon, name, status badge, modified date, actions
-- [ ] Folders visually distinguishable (folder icon, bolder text or different weight)
-- [ ] Folders appear before files in the list (always, regardless of sort)
-- [ ] Loading: skeleton rows matching exact row height and layout (zero CLS)
-- [ ] Error: full-width error card with message + "Try Again" button
-- [ ] Empty: illustration or icon + "No files found" message
+- [x] On mount, fetch and display root-level resources
+- [x] Each row shows: file type icon, name, status badge, modified date, actions
+- [x] Folders visually distinguishable (folder icon, bolder text or different weight)
+- [x] Folders appear before files in the list (always, regardless of sort)
+- [x] Loading: skeleton rows matching exact row height and layout (zero CLS)
+- [x] Error: full-width error card with message + "Try Again" button
+- [x] Empty: illustration or icon + "No files found" message
 
 **WOW Detail:**
 
-- [ ] Skeleton rows animate with Tailwind `animate-pulse`
-- [ ] File icons are contextual: different icons for PDF, Doc, Sheet, Slide, Image, Folder
-- [ ] Row hover shows subtle background change (`bg-muted/50`)
-- [ ] First load feels instant via staleTime preventing flash
+- [x] Skeleton rows animate with Tailwind `animate-pulse`
+- [x] File icons are contextual: different icons for PDF, Doc, Sheet, Slide, Image, Folder
+- [x] Row hover shows subtle background change (`bg-muted/50`)
+- [x] First load feels instant via staleTime preventing flash
 
 ---
 
@@ -151,18 +151,18 @@
 
 **Acceptance Criteria:**
 
-- [ ] Clicking/double-clicking a folder navigates into it, showing its children
-- [ ] Breadcrumb trail: `Root > Documents > Reports` with clickable segments
-- [ ] Loading skeleton during folder content fetch
-- [ ] Empty folder: "This folder is empty" with folder icon
-- [ ] Navigating to a previously cached folder shows data instantly (no spinner)
-- [ ] URL or internal state tracks current folder ID for potential deep-linking
+- [x] Clicking/double-clicking a folder navigates into it, showing its children
+- [x] Breadcrumb trail: `Root > Documents > Reports` with clickable segments
+- [x] Loading skeleton during folder content fetch
+- [x] Empty folder: "This folder is empty" with folder icon
+- [x] Navigating to a previously cached folder shows data instantly (no spinner)
+- [x] URL or internal state tracks current folder ID for potential deep-linking
 
 **WOW Detail:**
 
-- [ ] Smooth content transition on navigation (opacity fade, subtle on purpose)
-- [ ] Breadcrumb truncates with `...` dropdown for paths > 4 segments deep
-- [ ] Keyboard: Enter on focused folder opens it
+- [x] Smooth content transition on navigation (opacity fade, subtle on purpose)
+- [x] Breadcrumb truncates with `...` dropdown for paths > 4 segments deep
+- [x] Keyboard: Enter on focused folder opens it
 
 ---
 
@@ -174,15 +174,15 @@
 
 **Acceptance Criteria:**
 
-- [ ] Each breadcrumb segment is clickable → navigates to that folder
-- [ ] Back arrow button at top left navigates to parent
-- [ ] Cache is preserved — going back shows previous data without loading
-- [ ] Back at root: back button is disabled or hidden
+- [x] Each breadcrumb segment is clickable → navigates to that folder
+- [x] Back arrow button at top left navigates to parent
+- [x] Cache is preserved — going back shows previous data without loading
+- [x] Back at root: back button is disabled or hidden
 
 **WOW Detail:**
 
-- [ ] Keyboard: Backspace or Alt+← navigates up
-- [ ] Breadcrumb segments have hover underline for affordance
+- [x] Keyboard: Backspace or Alt+← navigates up
+- [x] Breadcrumb segments have hover underline for affordance
 
 ---
 
@@ -196,16 +196,16 @@
 
 **Acceptance Criteria:**
 
-- [ ] Each row has a delete action (trash icon, revealed on hover or in actions menu)
-- [ ] Confirmation dialog: "Remove '[filename]'? This won't delete it from Google Drive."
-- [ ] Optimistic removal: file disappears immediately from list
-- [ ] On error: file reappears in its original position, error toast with message
-- [ ] Delete action disabled during pending delete
+- [x] Each row has a delete action (trash icon, revealed on hover or in actions menu)
+- [x] Confirmation dialog: "Remove '[filename]'? This won't delete it from Google Drive."
+- [x] Optimistic removal: file disappears immediately from list
+- [x] On error: file reappears in its original position, error toast with message
+- [x] Delete action disabled during pending delete
 
 **WOW Detail:**
 
-- [ ] Row exit animation (fade out + slight scale down) before removal
-- [ ] Confirmation uses `AlertDialog` from Shadcn (not browser `confirm()`)
+- [x] Row exit animation (fade out + slight scale down) before removal
+- [x] Confirmation uses `AlertDialog` from Shadcn (not browser `confirm()`)
 - [ ] Toast shows undo option (soft delete with timer) — if API supports it
 - [ ] Batch delete when multiple items selected
 

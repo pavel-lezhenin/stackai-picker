@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
+import { DeleteConfirmDialog } from '@/components/file-picker/DeleteConfirmDialog';
 import { FileList } from '@/components/file-picker/FileList';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,13 +14,30 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useConnection } from '@/hooks/useConnection';
+import { useDeleteKBResource } from '@/hooks/useKnowledgeBase';
 import { useResources } from '@/hooks/useResources';
+import { cn } from '@/lib/utils';
 
 type BreadcrumbEntry = {
   id: string | undefined;
   name: string;
 };
+
+type DeleteTarget = {
+  resourceId: string;
+  name: string;
+  path: string;
+};
+
+// Show at most this many segments before collapsing middle ones into "..."
+const MAX_VISIBLE_CRUMBS = 4;
 
 export function FileBrowser() {
   const {
@@ -31,6 +49,16 @@ export function FileBrowser() {
   const [folderStack, setFolderStack] = useState<BreadcrumbEntry[]>([
     { id: undefined, name: 'Root' },
   ]);
+  // Tracks opacity for fade transition on folder navigation
+  const [visible, setVisible] = useState(true);
+  const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Delete flow state
+  // kbId is undefined until a KB is created (Epic 5 wires this in)
+  const [kbId] = useState<string | undefined>(undefined);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deleteMutation = useDeleteKBResource(kbId);
 
   const currentFolder = folderStack[folderStack.length - 1];
   const {
@@ -45,29 +73,101 @@ export function FileBrowser() {
   const isError = isConnError || isResError;
   const errorMessage = connError?.message ?? resError?.message;
 
-  const handleNavigate = useCallback((resourceId: string, name: string) => {
-    setFolderStack((prev) => [...prev, { id: resourceId, name }]);
+  /** Fade out → update stack → fade in */
+  const navigateTo = useCallback((updater: (prev: BreadcrumbEntry[]) => BreadcrumbEntry[]) => {
+    if (fadeTimer.current) clearTimeout(fadeTimer.current);
+    setVisible(false);
+    fadeTimer.current = setTimeout(() => {
+      setFolderStack(updater);
+      setVisible(true);
+    }, 150);
   }, []);
 
-  const handleBreadcrumbClick = useCallback((index: number) => {
-    setFolderStack((prev) => prev.slice(0, index + 1));
-  }, []);
+  const handleNavigate = useCallback(
+    (resourceId: string, name: string) => {
+      navigateTo((prev) => [...prev, { id: resourceId, name }]);
+    },
+    [navigateTo],
+  );
+
+  const handleBreadcrumbClick = useCallback(
+    (index: number) => {
+      navigateTo((prev) => prev.slice(0, index + 1));
+    },
+    [navigateTo],
+  );
 
   const handleBack = useCallback(() => {
-    setFolderStack((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev));
+    if (folderStack.length <= 1) return;
+    navigateTo((prev) => prev.slice(0, -1));
+  }, [folderStack.length, navigateTo]);
+
+  // Keyboard: Backspace or Alt+← navigates up
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key === 'Backspace' || (e.key === 'ArrowLeft' && e.altKey)) {
+        e.preventDefault();
+        handleBack();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [handleBack]);
+
+  // Clean up fade timer on unmount
+  useEffect(
+    () => () => {
+      if (fadeTimer.current) clearTimeout(fadeTimer.current);
+    },
+    [],
+  );
+
+  const handleDelete = useCallback((resourceId: string, name: string, path: string) => {
+    setDeleteTarget({ resourceId, name, path });
   }, []);
 
-  const handleDelete = useCallback((_resourceId: string, _name: string) => {
-    // TODO: connect to useDeleteKBResource mutation (US-2.1)
+  const handleDeleteCancel = useCallback(() => {
+    setDeleteTarget(null);
   }, []);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeleteTarget(null);
+    setDeletingId(target.resourceId);
+    // Brief pause for exit animation before optimistic cache removal
+    await new Promise<void>((r) => setTimeout(r, 180));
+    deleteMutation.mutate(target.path, {
+      onSettled: () => setDeletingId(null),
+    });
+  }, [deleteTarget, deleteMutation]);
 
   const handleRetry = useCallback(() => {
     refetch();
   }, [refetch]);
 
+  // Build breadcrumb segments — collapse middle items when stack is deep
+  const breadcrumbSegments = (() => {
+    if (folderStack.length <= MAX_VISIBLE_CRUMBS) return folderStack;
+    // Keep first, last two, collapse the rest
+    const collapsed = folderStack.slice(1, folderStack.length - 2);
+    return [
+      folderStack[0],
+      { id: '__overflow__', name: '...', overflow: collapsed },
+      ...folderStack.slice(folderStack.length - 2),
+    ] as (BreadcrumbEntry & { overflow?: BreadcrumbEntry[] })[];
+  })();
+
   return (
     <div className="flex flex-col h-full">
-      {/* Toolbar */}
+      <DeleteConfirmDialog
+        open={!!deleteTarget}
+        fileName={deleteTarget?.name ?? ''}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
         <Button
           variant="ghost"
@@ -82,18 +182,44 @@ export function FileBrowser() {
 
         <Breadcrumb>
           <BreadcrumbList>
-            {folderStack.map((entry, index) => {
-              const isLast = index === folderStack.length - 1;
+            {breadcrumbSegments.map((entry, index) => {
+              const isLast = index === breadcrumbSegments.length - 1;
+              const isOverflow = entry.id === '__overflow__';
+              const overflowEntry = entry as BreadcrumbEntry & { overflow?: BreadcrumbEntry[] };
+              // Find the real index in folderStack for non-overflow items
+              const stackIndex = folderStack.findIndex((f) => f.id === entry.id);
+
               return (
                 <span key={entry.id ?? 'root'} className="contents">
                   {index > 0 && <BreadcrumbSeparator />}
                   <BreadcrumbItem>
                     {isLast ? (
                       <BreadcrumbPage>{entry.name}</BreadcrumbPage>
+                    ) : isOverflow ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <BreadcrumbLink className="cursor-pointer select-none">
+                            &hellip;
+                          </BreadcrumbLink>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          {overflowEntry.overflow?.map((o) => {
+                            const oIndex = folderStack.findIndex((f) => f.id === o.id);
+                            return (
+                              <DropdownMenuItem
+                                key={o.id}
+                                onClick={() => handleBreadcrumbClick(oIndex)}
+                              >
+                                {o.name}
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     ) : (
                       <BreadcrumbLink
                         className="cursor-pointer hover:underline"
-                        onClick={() => handleBreadcrumbClick(index)}
+                        onClick={() => handleBreadcrumbClick(stackIndex)}
                       >
                         {entry.name}
                       </BreadcrumbLink>
@@ -106,13 +232,20 @@ export function FileBrowser() {
         </Breadcrumb>
       </div>
 
-      {/* File List */}
-      <div className="flex-1 overflow-auto">
+      {/* File List — opacity fade on folder navigation */}
+      <div
+        className={cn(
+          'flex-1 overflow-auto transition-opacity duration-150 ease-out',
+          visible ? 'opacity-100' : 'opacity-0',
+        )}
+      >
         <FileList
           resources={resources}
           isLoading={isLoading}
           isError={isError}
           errorMessage={errorMessage}
+          deletingId={deletingId}
+          pendingDeleteId={deleteMutation.isPending ? deletingId : null}
           onNavigate={handleNavigate}
           onDelete={handleDelete}
           onRetry={handleRetry}

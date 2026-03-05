@@ -49,8 +49,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         );
       }
 
+      console.error(`[BFF /knowledge-bases/.../sync] upstream ${response.status}:`, text);
       return NextResponse.json(
-        { error: `Failed to trigger sync: ${text}`, status: response.status },
+        { error: `Failed to trigger sync (${response.status})`, status: response.status },
         { status: response.status },
       );
     }
