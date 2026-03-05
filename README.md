@@ -1,36 +1,173 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Stack AI File Picker
+
+A custom Google Drive File Picker built for the [Stack AI](https://www.stack-ai.com/) platform. Browse, select, index, and manage Google Drive files and folders to build Knowledge Bases — all through an enterprise-grade UI.
+
+<!-- > **[Live Demo](https://stackai-picker.vercel.app)** · **[Demo Video](TODO)** -->
+
+---
+
+## Tech Stack & Rationale
+
+| Technology                  | Why                                                                                                                                                                                     |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Next.js 16** (App Router) | Server-side API routes act as a BFF proxy — credentials never reach the client. App Router provides `loading.tsx`/`error.tsx` boundaries out of the box.                                |
+| **TanStack Query v5**       | Handles all server state: caching, deduplication, optimistic updates, background refetching. Navigating to a previously visited folder shows cached data instantly (`staleTime: 5min`). |
+| **Tailwind CSS v4**         | Utility-first styling with zero custom CSS files. Consistent with Shadcn UI's design system.                                                                                            |
+| **Shadcn UI**               | Enterprise-grade component primitives (AlertDialog, Toast/Sonner, Skeleton, etc.) with full accessibility and keyboard support.                                                         |
+| **TypeScript** (strict)     | Zero `any` types. Zod validates all API boundaries. Discriminated unions for resource types.                                                                                            |
+| **Zod**                     | Runtime validation at system boundaries — API responses are validated before entering the app.                                                                                          |
+
+---
+
+## Architecture
+
+```
+src/
+├── app/
+│   ├── api/                # BFF proxy routes (server-side only)
+│   │   ├── connections/    # GET connections, resources
+│   │   └── knowledge-bases/# CRUD knowledge bases, sync, resources
+│   ├── page.tsx            # Main page (server component)
+│   ├── layout.tsx          # Root layout
+│   ├── loading.tsx         # Root loading boundary
+│   └── error.tsx           # Root error boundary
+├── components/
+│   ├── ui/                 # Shadcn UI primitives (do not edit)
+│   ├── file-picker/        # Feature components (FileRow, FileList, Toolbar, Breadcrumb)
+│   └── providers/          # Context providers (QueryClient, etc.)
+├── hooks/                  # TanStack Query hooks (useResources, useConnection, etc.)
+├── lib/                    # API client, utilities, constants
+└── types/                  # TypeScript types + Zod schemas
+```
+
+### Key Design Decisions
+
+- **BFF Pattern** — All Stack AI API calls go through Next.js API routes. The client never sees credentials or external URLs. This also normalizes error shapes and allows server-side token caching.
+- **Optimistic Updates** — Every mutation (index, de-index, delete) uses TanStack Query's `onMutate` → `onError` → `onSettled` pattern for instant UI feedback with automatic rollback on failure.
+- **SOLID Principles** — Components follow Single Responsibility (<100 lines each). File type icons use a `Record` map (Open/Closed). Components depend on hooks, never fetch functions (Dependency Inversion).
+- **Zero CLS** — Skeleton loaders match exact dimensions of loaded content. `staleTime` prevents layout shifts during navigation.
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- npm (or pnpm / yarn)
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/<your-username>/stackai-picker.git
+cd stackai-picker
+npm install
+```
+
+### 2. Environment Variables
+
+Copy the example file and fill in your credentials:
+
+```bash
+cp .env.example .env.local
+```
+
+Required variables (see `.env.example`):
+
+| Variable                     | Description                                        |
+| ---------------------------- | -------------------------------------------------- |
+| `STACK_AI_BASE_URL`          | Stack AI API base URL (`https://api.stack-ai.com`) |
+| `STACK_AI_SUPABASE_URL`      | Supabase auth URL (`https://sb.stack-ai.com`)      |
+| `STACK_AI_SUPABASE_ANON_KEY` | Supabase anonymous key for auth requests           |
+| `STACK_AI_EMAIL`             | Service account email                              |
+| `STACK_AI_PASSWORD`          | Service account password                           |
+
+> **Security**: These variables are only used in server-side API routes. They are never exposed to the client.
+
+### 3. Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Build for Production
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Features
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **File Browsing** — Navigate Google Drive hierarchy with breadcrumb navigation
+- **Multi-Selection** — Checkbox selection with Select All and batch actions
+- **Indexing** — Index files/folders into a Knowledge Base with status tracking (indexed / pending / not indexed)
+- **De-indexing** — Remove files from KB without deleting from the listing
+- **Deletion** — De-list files with confirmation dialog and optimistic removal
+- **Sorting** — Sort by name or modified date; folders always appear first
+- **Search / Filter** — Client-side filtering with debounced input
+- **Keyboard Navigation** — Enter to open folders, Space to select, Backspace to go up
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Development Workflow
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Pre-commit Hooks (Husky + lint-staged)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Every `git commit` automatically runs:
+
+- **Prettier** — formats staged `.ts`, `.tsx`, `.json`, `.md`, `.css`, `.yml` files
+- **ESLint** — lints and auto-fixes staged `.ts`/`.tsx` files
+
+Commits are blocked if formatting or lint errors remain.
+
+### Available Scripts
+
+| Command                 | Description                                                |
+| ----------------------- | ---------------------------------------------------------- |
+| `npm run dev`           | Start development server                                   |
+| `npm run build`         | Production build                                           |
+| `npm run lint`          | Run ESLint                                                 |
+| `npm run typecheck`     | TypeScript type checking                                   |
+| `npm run format`        | Format all files with Prettier                             |
+| `npm run format:check`  | Check formatting (CI mode)                                 |
+| `npm run check-secrets` | Scan for leaked secrets (gitleaks)                         |
+| `npm run precommit`     | Full pre-commit suite: format + lint + typecheck + secrets |
+
+### CI Pipeline (GitHub Actions)
+
+Runs on every push and PR to `main`:
+
+```
+format ──┐
+lint    ──┤
+typecheck─┤──► build
+security ─┘
+```
+
+- **Format** — `prettier --check` (fails if unformatted code)
+- **Lint** — ESLint
+- **Type Check** — `tsc --noEmit`
+- **Security** — [Gitleaks](https://github.com/gitleaks/gitleaks) secret scanning + `npm audit`
+- **Build** — `next build` (only runs after all checks pass)
+
+---
+
+## Deployment (Vercel)
+
+1. Push your repository to GitHub
+2. Go to [vercel.com/new](https://vercel.com/new) → Import your GitHub repo
+3. Add **Environment Variables** in Vercel dashboard (Settings → Environment Variables) — same 5 variables from `.env.example`
+4. Click **Deploy** — Vercel auto-detects Next.js, no extra config needed
+
+No `vercel.json` or Docker setup required.
+
+---
+
+## License
+
+Private — Stack AI take-home assignment.
