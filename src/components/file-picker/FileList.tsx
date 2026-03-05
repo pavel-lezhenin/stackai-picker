@@ -1,6 +1,5 @@
 'use client';
 
-import { useCallback } from 'react';
 import { AlertTriangle, FolderOpen } from 'lucide-react';
 
 import { FileRow } from '@/components/file-picker/FileRow';
@@ -16,8 +15,13 @@ type FileListProps = {
   errorMessage?: string;
   deletingId?: string | null;
   pendingDeleteId?: string | null;
-  onNavigate: (resourceId: string, name: string) => void;
+  indexedCount: number;
+  totalCount: number;
+  isIndexing: boolean;
+  onNavigate: (resourceId: string, name: string, path: string) => void;
   onDelete: (resourceId: string, name: string, path: string) => void;
+  onIndex: (resource: Resource) => void;
+  onDeindex: (path: string) => void;
   onRetry: () => void;
 };
 
@@ -28,8 +32,13 @@ export function FileList({
   errorMessage,
   deletingId,
   pendingDeleteId,
+  indexedCount,
+  totalCount,
+  isIndexing,
   onNavigate,
   onDelete,
+  onIndex,
+  onDeindex,
   onRetry,
 }: FileListProps) {
   if (isLoading) {
@@ -67,15 +76,24 @@ export function FileList({
 
   return (
     <div role="grid" aria-label="File list">
-      {/* Header */}
+      {/* Column headers */}
       <div
         role="row"
-        className="grid grid-cols-[1fr_100px_120px_40px] items-center gap-4 px-4 py-2 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wide"
+        className="grid grid-cols-[1fr_100px_120px_136px] items-center gap-4 px-4 py-2 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wide"
       >
         <div role="columnheader">Name</div>
         <div role="columnheader">Status</div>
         <div role="columnheader">Modified</div>
-        <div role="columnheader" />
+        <div role="columnheader" className="text-right pr-1">
+          <span
+            aria-live="polite"
+            className="normal-case tracking-normal font-normal text-muted-foreground/70"
+          >
+            {indexedCount > 0
+              ? `${indexedCount} of ${totalCount} indexed`
+              : `${totalCount} item${totalCount !== 1 ? 's' : ''}`}
+          </span>
+        </div>
       </div>
 
       {/* Rows */}
@@ -91,8 +109,12 @@ export function FileList({
             path={resource.path}
             isDeleting={deletingId === resource.resourceId}
             isPendingDelete={pendingDeleteId === resource.resourceId}
+            isIndexing={isIndexing && resource.status === 'pending'}
             onNavigate={onNavigate}
             onDelete={onDelete}
+            onIndex={onIndex}
+            onDeindex={onDeindex}
+            resource={resource}
           />
         ))}
       </div>

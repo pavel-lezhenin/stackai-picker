@@ -3,7 +3,6 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { apiFetch } from '@/lib/api';
-import { resourceKeys } from '@/types/resource';
 
 import type { Organization } from '@/types/api';
 

@@ -100,7 +100,7 @@ export function useSyncKB() {
       const qs = new URLSearchParams({ org_id: params.orgId });
       return apiFetch<unknown>(`/knowledge-bases/${params.kbId}/sync?${qs}`);
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: () => {
       toast.success('Indexing started — files will be indexed shortly');
       // Invalidate KB resources to pick up status changes on next fetch
       queryClient.invalidateQueries({
@@ -146,6 +146,47 @@ export function useDeleteKBResource(kbId: string | undefined) {
     onSuccess: (_data, resourcePath) => {
       const name = resourcePath.split('/').pop() ?? resourcePath;
       toast.success(`Removed '${name}' from Knowledge Base`);
+    },
+  });
+}
+
+// --- Index Resources (create KB + trigger sync in one shot) ---
+
+/**
+ * Creates a new Knowledge Base with the given resources and immediately triggers
+ * a sync. Returns the KB object (including knowledge_base_id) on success.
+ *
+ * Each call creates a NEW KB — to keep previously indexed items, callers must
+ * include those resources in the `resources` array alongside new selections.
+ */
+export function useIndexResources() {
+  return useMutation({
+    mutationFn: async (params: { connectionId: string; resources: Resource[]; orgId: string }) => {
+      const connectionSourceIds = deduplicateForIndexing(params.resources);
+
+      const kb = await apiFetch<KnowledgeBase>('/knowledge-bases', {
+        method: 'POST',
+        body: JSON.stringify({
+          connection_id: params.connectionId,
+          connection_source_ids: connectionSourceIds,
+        }),
+      });
+
+      const qs = new URLSearchParams({ org_id: params.orgId });
+      await apiFetch<unknown>(`/knowledge-bases/${kb.knowledge_base_id}/sync?${qs}`);
+
+      return kb;
+    },
+
+    onError: (error: Error) => {
+      toast.error(`Failed to index: ${error.message}`);
+    },
+
+    onSuccess: (_data, variables) => {
+      const count = variables.resources.length;
+      toast.success(
+        `Indexing ${count} ${count === 1 ? 'item' : 'items'} — status updates automatically`,
+      );
     },
   });
 }

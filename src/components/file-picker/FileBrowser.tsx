@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
 import { DeleteConfirmDialog } from '@/components/file-picker/DeleteConfirmDialog';
@@ -21,13 +21,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useConnection } from '@/hooks/useConnection';
-import { useDeleteKBResource } from '@/hooks/useKnowledgeBase';
+import { useDeleteKBResource, useIndexResources, useKBResources } from '@/hooks/useKnowledgeBase';
+import { useOrganization } from '@/hooks/useOrganization';
 import { useResources } from '@/hooks/useResources';
 import { cn } from '@/lib/utils';
+
+import type { Resource } from '@/types/resource';
 
 type BreadcrumbEntry = {
   id: string | undefined;
   name: string;
+  /** inode_path of this folder — used to fetch KB resources at this level */
+  path: string;
 };
 
 type DeleteTarget = {
@@ -46,28 +51,51 @@ export function FileBrowser() {
     isError: isConnError,
     error: connError,
   } = useConnection();
+  const { data: org } = useOrganization();
   const [folderStack, setFolderStack] = useState<BreadcrumbEntry[]>([
-    { id: undefined, name: 'Root' },
+    { id: undefined, name: 'Root', path: '/' },
   ]);
   // Tracks opacity for fade transition on folder navigation
   const [visible, setVisible] = useState(true);
   const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // KB state — set after first successful indexing operation
+  const [kbId, setKbId] = useState<string | undefined>(undefined);
+  // Tracks resource IDs hidden from view after delete (optimistic removal)
+  const [hiddenResourceIds, setHiddenResourceIds] = useState<ReadonlySet<string>>(new Set());
+
   // Delete flow state
-  // kbId is undefined until a KB is created (Epic 5 wires this in)
-  const [kbId] = useState<string | undefined>(undefined);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const deleteMutation = useDeleteKBResource(kbId);
 
+  // Index flow
+  const indexMutation = useIndexResources();
+
   const currentFolder = folderStack[folderStack.length - 1];
   const {
-    data: resources = [],
+    data: connectionResources = [],
     isLoading: isResLoading,
     isError: isResError,
     error: resError,
     refetch,
   } = useResources(connection?.connection_id, currentFolder.id);
+
+  // KB resources at the current folder level — provides indexed status overlay
+  const { data: kbResources = [] } = useKBResources(kbId, currentFolder.path);
+
+  // Merge connection resources with KB status — folders first, then files alphabetically
+  const resources = useMemo<Resource[]>(() => {
+    const statusMap = new Map(kbResources.map((r) => [r.resourceId, r.status]));
+    return connectionResources
+      .filter((r) => !hiddenResourceIds.has(r.resourceId))
+      .map((r) => ({ ...r, status: statusMap.get(r.resourceId) ?? r.status }));
+  }, [connectionResources, kbResources, hiddenResourceIds]);
+
+  const indexedCount = useMemo(
+    () => resources.filter((r) => r.status === 'indexed').length,
+    [resources],
+  );
 
   const isLoading = isConnLoading || isResLoading;
   const isError = isConnError || isResError;
@@ -84,8 +112,8 @@ export function FileBrowser() {
   }, []);
 
   const handleNavigate = useCallback(
-    (resourceId: string, name: string) => {
-      navigateTo((prev) => [...prev, { id: resourceId, name }]);
+    (resourceId: string, name: string, folderPath: string) => {
+      navigateTo((prev) => [...prev, { id: resourceId, name, path: folderPath }]);
     },
     [navigateTo],
   );
@@ -139,10 +167,51 @@ export function FileBrowser() {
     setDeletingId(target.resourceId);
     // Brief pause for exit animation before optimistic cache removal
     await new Promise<void>((r) => setTimeout(r, 180));
+    setDeletingId(null);
+    // Optimistically hide from connection resource view
+    setHiddenResourceIds((prev) => new Set([...prev, target.resourceId]));
     deleteMutation.mutate(target.path, {
-      onSettled: () => setDeletingId(null),
+      onError: () => {
+        // Restore if the API call fails — KB resource rollback is handled inside the hook
+        setHiddenResourceIds((prev) => {
+          const next = new Set(prev);
+          next.delete(target.resourceId);
+          return next;
+        });
+      },
     });
   }, [deleteTarget, deleteMutation]);
+
+  /**
+   * Index one or more resources. Creates a new KB containing the supplied
+   * resources; to preserve previously indexed items pass them in too.
+   */
+  const handleIndex = useCallback(
+    (resource: Resource) => {
+      if (!connection || !org) return;
+
+      // Re-index: include already-indexed items so they aren't lost when KB is recreated
+      const alreadyIndexed = kbResources.filter(
+        (r) =>
+          (r.status === 'indexed' || r.status === 'pending') &&
+          r.resourceId !== resource.resourceId,
+      );
+      const allResources = [...alreadyIndexed, resource];
+
+      indexMutation.mutate(
+        { connectionId: connection.connection_id, resources: allResources, orgId: org.org_id },
+        { onSuccess: (kb) => setKbId(kb.knowledge_base_id) },
+      );
+    },
+    [connection, org, kbResources, indexMutation],
+  );
+
+  const handleDeindex = useCallback(
+    (path: string) => {
+      deleteMutation.mutate(path);
+    },
+    [deleteMutation],
+  );
 
   const handleRetry = useCallback(() => {
     refetch();
@@ -246,8 +315,13 @@ export function FileBrowser() {
           errorMessage={errorMessage}
           deletingId={deletingId}
           pendingDeleteId={deleteMutation.isPending ? deletingId : null}
+          indexedCount={indexedCount}
+          totalCount={resources.length}
+          isIndexing={indexMutation.isPending}
           onNavigate={handleNavigate}
           onDelete={handleDelete}
+          onIndex={handleIndex}
+          onDeindex={handleDeindex}
           onRetry={handleRetry}
         />
       </div>
