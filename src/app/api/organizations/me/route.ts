@@ -10,8 +10,9 @@ export async function GET() {
 
     if (!response.ok) {
       const text = await response.text();
+      console.error(`[BFF /organizations/me] upstream ${response.status}:`, text);
       return NextResponse.json(
-        { error: `Failed to fetch organization: ${text}`, status: response.status },
+        { error: `Failed to fetch organization (${response.status})`, status: response.status },
         { status: response.status },
       );
     }

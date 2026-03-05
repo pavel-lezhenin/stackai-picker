@@ -11,8 +11,9 @@ export async function GET() {
 
     if (!response.ok) {
       const text = await response.text();
+      console.error(`[BFF /connections] upstream ${response.status}:`, text);
       return NextResponse.json(
-        { error: `Failed to fetch connections: ${text}`, status: response.status },
+        { error: `Failed to fetch connections (${response.status})`, status: response.status },
         { status: response.status },
       );
     }

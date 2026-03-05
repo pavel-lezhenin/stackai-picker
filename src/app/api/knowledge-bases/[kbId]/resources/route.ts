@@ -20,8 +20,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     if (!response.ok) {
       const text = await response.text();
+      console.error(`[BFF /knowledge-bases/.../resources GET] upstream ${response.status}:`, text);
       return NextResponse.json(
-        { error: `Failed to fetch KB resources: ${text}`, status: response.status },
+        { error: `Failed to fetch KB resources (${response.status})`, status: response.status },
         { status: response.status },
       );
     }
@@ -61,8 +62,12 @@ export async function DELETE(
 
     if (!response.ok) {
       const text = await response.text();
+      console.error(
+        `[BFF /knowledge-bases/.../resources DELETE] upstream ${response.status}:`,
+        text,
+      );
       return NextResponse.json(
-        { error: `Failed to delete resource: ${text}`, status: response.status },
+        { error: `Failed to delete resource (${response.status})`, status: response.status },
         { status: response.status },
       );
     }

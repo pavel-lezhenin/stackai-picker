@@ -4,12 +4,23 @@ import { getStackAIHeaders, stackUrl, toBffError } from '@/lib/auth';
 import { PaginatedResponseSchema } from '@/types/api';
 import { ConnectionResourceSchema } from '@/types/resource';
 
+/** UUID v4 pattern — validates path params before embedding in upstream URL */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ connectionId: string }> },
 ) {
   try {
     const { connectionId } = await params;
+
+    if (!UUID_RE.test(connectionId)) {
+      return NextResponse.json(
+        { error: 'Invalid identifier format', status: 400 },
+        { status: 400 },
+      );
+    }
+
     const { searchParams } = request.nextUrl;
     const resourceId = searchParams.get('resource_id');
     const cursor = searchParams.get('cursor');
@@ -23,8 +34,9 @@ export async function GET(
 
     if (!response.ok) {
       const text = await response.text();
+      console.error(`[BFF /connections/.../resources] upstream ${response.status}:`, text);
       return NextResponse.json(
-        { error: `Failed to fetch resources: ${text}`, status: response.status },
+        { error: `Failed to fetch resources (${response.status})`, status: response.status },
         { status: response.status },
       );
     }
