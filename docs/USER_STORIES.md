@@ -196,16 +196,16 @@
 
 **Acceptance Criteria:**
 
-- [ ] Each row has a delete action (trash icon, revealed on hover or in actions menu)
-- [ ] Confirmation dialog: "Remove '[filename]'? This won't delete it from Google Drive."
-- [ ] Optimistic removal: file disappears immediately from list
-- [ ] On error: file reappears in its original position, error toast with message
-- [ ] Delete action disabled during pending delete
+- [x] Each row has a delete action (trash icon, revealed on hover or in actions menu)
+- [x] Confirmation dialog: "Remove '[filename]'? This won't delete it from Google Drive."
+- [x] Optimistic removal: file disappears immediately from list
+- [x] On error: file reappears in its original position, error toast with message
+- [x] Delete action disabled during pending delete
 
 **WOW Detail:**
 
-- [ ] Row exit animation (fade out + slight scale down) before removal
-- [ ] Confirmation uses `AlertDialog` from Shadcn (not browser `confirm()`)
+- [x] Row exit animation (fade out + slight scale down) before removal
+- [x] Confirmation uses `AlertDialog` from Shadcn (not browser `confirm()`)
 - [ ] Toast shows undo option (soft delete with timer) — if API supports it
 - [ ] Batch delete when multiple items selected
 

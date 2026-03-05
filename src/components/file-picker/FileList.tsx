@@ -14,8 +14,10 @@ type FileListProps = {
   isLoading: boolean;
   isError: boolean;
   errorMessage?: string;
+  deletingId?: string | null;
+  pendingDeleteId?: string | null;
   onNavigate: (resourceId: string, name: string) => void;
-  onDelete: (resourceId: string, name: string) => void;
+  onDelete: (resourceId: string, name: string, path: string) => void;
   onRetry: () => void;
 };
 
@@ -24,6 +26,8 @@ export function FileList({
   isLoading,
   isError,
   errorMessage,
+  deletingId,
+  pendingDeleteId,
   onNavigate,
   onDelete,
   onRetry,
@@ -84,6 +88,9 @@ export function FileList({
             type={resource.type}
             status={resource.status}
             modifiedAt={resource.modifiedAt}
+            path={resource.path}
+            isDeleting={deletingId === resource.resourceId}
+            isPendingDelete={pendingDeleteId === resource.resourceId}
             onNavigate={onNavigate}
             onDelete={onDelete}
           />

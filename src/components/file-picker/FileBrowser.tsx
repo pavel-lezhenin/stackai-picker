@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
+import { DeleteConfirmDialog } from '@/components/file-picker/DeleteConfirmDialog';
 import { FileList } from '@/components/file-picker/FileList';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,12 +21,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useConnection } from '@/hooks/useConnection';
+import { useDeleteKBResource } from '@/hooks/useKnowledgeBase';
 import { useResources } from '@/hooks/useResources';
 import { cn } from '@/lib/utils';
 
 type BreadcrumbEntry = {
   id: string | undefined;
   name: string;
+};
+
+type DeleteTarget = {
+  resourceId: string;
+  name: string;
+  path: string;
 };
 
 // Show at most this many segments before collapsing middle ones into "..."
@@ -44,6 +52,13 @@ export function FileBrowser() {
   // Tracks opacity for fade transition on folder navigation
   const [visible, setVisible] = useState(true);
   const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Delete flow state
+  // kbId is undefined until a KB is created (Epic 5 wires this in)
+  const [kbId] = useState<string | undefined>(undefined);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deleteMutation = useDeleteKBResource(kbId);
 
   const currentFolder = folderStack[folderStack.length - 1];
   const {
@@ -109,9 +124,25 @@ export function FileBrowser() {
     [],
   );
 
-  const handleDelete = useCallback((_resourceId: string, _name: string) => {
-    // TODO: Epic 4 / US-2.1 — connect to useDeleteKBResource mutation with confirmation dialog
+  const handleDelete = useCallback((resourceId: string, name: string, path: string) => {
+    setDeleteTarget({ resourceId, name, path });
   }, []);
+
+  const handleDeleteCancel = useCallback(() => {
+    setDeleteTarget(null);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeleteTarget(null);
+    setDeletingId(target.resourceId);
+    // Brief pause for exit animation before optimistic cache removal
+    await new Promise<void>((r) => setTimeout(r, 180));
+    deleteMutation.mutate(target.path, {
+      onSettled: () => setDeletingId(null),
+    });
+  }, [deleteTarget, deleteMutation]);
 
   const handleRetry = useCallback(() => {
     refetch();
@@ -131,7 +162,12 @@ export function FileBrowser() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Toolbar */}
+      <DeleteConfirmDialog
+        open={!!deleteTarget}
+        fileName={deleteTarget?.name ?? ''}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
         <Button
           variant="ghost"
@@ -208,6 +244,8 @@ export function FileBrowser() {
           isLoading={isLoading}
           isError={isError}
           errorMessage={errorMessage}
+          deletingId={deletingId}
+          pendingDeleteId={deleteMutation.isPending ? deletingId : null}
           onNavigate={handleNavigate}
           onDelete={handleDelete}
           onRetry={handleRetry}

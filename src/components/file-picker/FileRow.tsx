@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useCallback } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -17,8 +17,13 @@ type FileRowProps = {
   type: ResourceType;
   status: ResourceStatus;
   modifiedAt: string | null;
+  path: string;
+  /** True while the exit animation runs (before row is removed from cache) */
+  isDeleting?: boolean;
+  /** True while the DELETE request is in-flight */
+  isPendingDelete?: boolean;
   onNavigate: (resourceId: string, name: string) => void;
-  onDelete: (resourceId: string, name: string) => void;
+  onDelete: (resourceId: string, name: string, path: string) => void;
 };
 
 function formatDate(iso: string | null): string {
@@ -36,6 +41,9 @@ export const FileRow = memo(function FileRow({
   type,
   status,
   modifiedAt,
+  path,
+  isDeleting = false,
+  isPendingDelete = false,
   onNavigate,
   onDelete,
 }: FileRowProps) {
@@ -56,9 +64,9 @@ export const FileRow = memo(function FileRow({
   const handleDelete = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      onDelete(resourceId, name);
+      onDelete(resourceId, name, path);
     },
-    [resourceId, name, onDelete],
+    [resourceId, name, path, onDelete],
   );
 
   return (
@@ -67,9 +75,11 @@ export const FileRow = memo(function FileRow({
       tabIndex={0}
       className={cn(
         'group grid grid-cols-[1fr_100px_120px_40px] items-center gap-4 px-4 py-2.5',
-        'border-b border-border/50 transition-colors duration-150',
+        'border-b border-border/50 transition-all duration-200',
         'hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none',
         isFolder && 'cursor-pointer',
+        isDeleting && 'opacity-0 scale-95 pointer-events-none',
+        isPendingDelete && 'opacity-60',
       )}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
@@ -104,9 +114,14 @@ export const FileRow = memo(function FileRow({
                 size="icon"
                 className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={handleDelete}
+                disabled={isPendingDelete}
                 aria-label={`Remove ${name}`}
               >
-                <Trash2 className="h-4 w-4 text-muted-foreground" />
+                {isPendingDelete ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                ) : (
+                  <Trash2 className="h-4 w-4 text-muted-foreground" />
+                )}
               </Button>
             </TooltipTrigger>
             <TooltipContent>Remove from listing</TooltipContent>
