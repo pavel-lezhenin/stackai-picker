@@ -1,40 +1,48 @@
 # ISS-5: KB create endpoint uses hyphens, not underscores
 
-**Severity:** Blocker
-**Found:** 2026-03-05
-**Time lost:** ~30 min
+**Severity:** Blocker  
+**Found:** 2026-03-05  
+**Time lost:** ~2-5 min
 
 ## Problem
 
-The notebook documents the Knowledge Base creation endpoint with an underscore:
+The notebook documents the Knowledge Base creation endpoint with an underscore and no `/v1/` prefix:
 
 ```
 POST /knowledge_bases
 ```
 
-The real API uses a **hyphen**:
+The real API uses a **hyphen** and requires the `/v1/` prefix:
 
 ```
 POST /v1/knowledge-bases
 ```
 
-All other KB endpoints (resources, sync) use underscores (`/v1/knowledge_bases/...`).
-This inconsistency is not documented anywhere — the create endpoint is the only one with a hyphen.
+Additionally, the request body field names differ from the notebook:
 
-Additionally, the request body differs from the notebook:
-
-| Field                              | Notebook                   | Actual                            |
+| Field                              | Documented                 | Actual                            |
 | ---------------------------------- | -------------------------- | --------------------------------- |
-| `chunker_params.chunker`           | `"sentence"`               | field is named `chunker_type`     |
+| `chunker_params.chunker`           | `"sentence"`               | key must be `chunker_type`        |
 | `embedding_params.embedding_model` | `"text-embedding-ada-002"` | `"openai.text-embedding-3-large"` |
-| `indexing_params.unstructured`     | `true`                     | field not accepted / not needed   |
-| `cron_job_id`                      | `null`                     | field not needed                  |
+| `indexing_params.unstructured`     | `true`                     | field not accepted                |
+| `cron_job_id`                      | `null`                     | field not accepted                |
+
+The response is also wrapped in a `{ data: {...} }` envelope — not documented.
+
+## How to Reproduce
+
+1. Implement KB creation using the documented endpoint `POST /knowledge_bases` with the documented body.
+2. Click "Index" on any file in the file picker.
+3. Observe: `404 Not Found` with body `{"detail": "Not Found"}`.
+
+## Root Cause
+
+The assignment notebook (`knowledge_base_workflow.ipynb`) was written against an older version of the API. The production API has since been updated to use RESTful hyphenated paths (`/knowledge-bases`) and updated model/chunker parameter names. The notebook was never updated to reflect this.
 
 ## Fix
 
-BFF route `src/app/api/knowledge-bases/route.ts` updated:
+Updated `src/app/api/knowledge-bases/route.ts`:
 
-- URL: `stackUrl('/v1/knowledge-bases')` (hyphen)
-- Body: `chunker_type`, `openai.text-embedding-3-large`, removed `unstructured` and `cron_job_id`
-
-The API also returns the KB wrapped in `{ data: {...} }` — BFF unwraps accordingly.
+- URL: `POST https://api.stackai.com/v1/knowledge-bases` (hyphen)
+- Body: use `chunker_type` instead of `chunker`; use `openai.text-embedding-3-large`; remove `unstructured` and `cron_job_id`
+- Response: unwrap `{ data: { knowledge_base_id, ... } }` envelope before returning to client
