@@ -15,19 +15,19 @@
 
 **Acceptance Criteria:**
 
-- [ ] Next.js 16 App Router with `src/` directory structure matching architecture spec
-- [ ] TypeScript `strict: true` with zero errors
-- [ ] Tailwind CSS v4 with Shadcn UI components installed and themed
-- [ ] TanStack Query v5 provider wrapping the app
-- [ ] Path aliases configured: `@/components`, `@/hooks`, `@/lib`, `@/types`
-- [ ] ESLint configured with zero warnings
-- [ ] `.env.example` with all required environment variables documented
-- [ ] `.env.local` excluded from git
+- [x] Next.js 16 App Router with `src/` directory structure matching architecture spec
+- [x] TypeScript `strict: true` with zero errors
+- [x] Tailwind CSS v4 with Shadcn UI components installed and themed
+- [x] TanStack Query v5 provider wrapping the app
+- [x] Path aliases configured: `@/components`, `@/hooks`, `@/lib`, `@/types`
+- [x] ESLint configured with zero warnings
+- [x] `.env.example` with all required environment variables documented
+- [x] `.env.local` excluded from git
 
 **WOW Detail:**
 
-- [ ] Shadcn theme customized to feel like a Stack AI enterprise product (neutral palette, professional typography)
-- [ ] `cn()` utility available from `@/lib/utils`
+- [x] Shadcn theme customized to feel like a Stack AI enterprise product (neutral palette, professional typography)
+- [x] `cn()` utility available from `@/lib/utils`
 
 ---
 
@@ -41,19 +41,19 @@
 
 **Acceptance Criteria:**
 
-- [ ] Map API `inode_type: "directory" | "file"` → internal `type: 'folder' | 'file'` discriminated union
-- [ ] `ResourceStatus` type: `'indexed' | 'pending' | null` (matches API — `null` = not indexed)
-- [ ] Zod schemas validating API response shapes: `PaginatedResponse<T>`, `ConnectionResource`, `KBResource`
-- [ ] API paginated response type: `{ data: T[]; next_cursor: string | null; current_cursor: string | null }`
-- [ ] BFF response envelope: `{ data: T } | { error: string; status: number }`
-- [ ] File type mapping: `Record<string, { icon: LucideIcon; label: string }>` for extensibility (OCP)
-- [ ] Connection type: `{ connection_id, name, connection_provider, created_at, updated_at }`
-- [ ] No `any` — use `unknown` with type narrowing where needed
+- [x] Map API `inode_type: "directory" | "file"` → internal `type: 'folder' | 'file'` discriminated union
+- [x] `ResourceStatus` type: `'indexed' | 'pending' | null` (matches API — `null` = not indexed)
+- [x] Zod schemas validating API response shapes: `PaginatedResponse<T>`, `ConnectionResource`, `KBResource`
+- [x] API paginated response type: `{ data: T[]; next_cursor: string | null; current_cursor: string | null }`
+- [x] BFF response envelope: `{ data: T } | { error: string; status: number }`
+- [x] File type mapping: `Record<string, { icon: LucideIcon; label: string }>` for extensibility (OCP)
+- [x] Connection type: `{ connection_id, name, connection_provider, created_at, updated_at }`
+- [x] No `any` — use `unknown` with type narrowing where needed
 
 **WOW Detail:**
 
-- [ ] Const assertions on query key factories
-- [ ] Resource `inode_path.path` extracted as `name` for display (API shape → UI shape)
+- [x] Const assertions on query key factories
+- [x] Resource `inode_path.path` extracted as `name` for display (API shape → UI shape)
 
 ---
 
@@ -65,24 +65,24 @@
 
 **Acceptance Criteria (maps to actual Stack AI API — see `docs/API_REFERENCE.md`):**
 
-- [ ] Auth route: server-side token acquisition from Supabase (`POST sb.stack-ai.com/auth/v1/token`)
-- [ ] `GET /api/organizations/me` → proxies `GET /organizations/me/current` (returns `org_id`, needed for sync)
-- [ ] `GET /api/connections` → proxies `GET /connections?connection_provider=gdrive&limit=1`
-- [ ] `GET /api/connections/[connectionId]/resources?resource_id=X` → proxies `GET /connections/{id}/resources/children?resource_id=X`
-- [ ] `POST /api/knowledge-bases` → proxies `POST /knowledge_bases` (create KB with `connection_source_ids`)
-- [ ] `GET /api/knowledge-bases/[kbId]/sync` → proxies `GET /knowledge_bases/sync/trigger/{kbId}/{orgId}`
-- [ ] `GET /api/knowledge-bases/[kbId]/resources?resource_path=X` → proxies `GET /knowledge_bases/{kbId}/resources/children?resource_path=X`
-- [ ] `DELETE /api/knowledge-bases/[kbId]/resources?resource_path=X` → proxies `DELETE /knowledge_bases/{kbId}/resources?resource_path=X`
-- [ ] Handle pagination: forward `next_cursor` / `current_cursor` transparently
-- [ ] Consistent BFF error shape: `{ error: string; status: number }`
-- [ ] Zod validation on incoming request bodies
-- [ ] Proper HTTP status codes: 200, 400, 401, 404, 500
+- [x] Auth route: server-side token acquisition from Supabase (`POST sb.stack-ai.com/auth/v1/token`)
+- [x] `GET /api/organizations/me` → proxies `GET /organizations/me/current` (returns `org_id`, needed for sync)
+- [x] `GET /api/connections` → proxies `GET /connections?connection_provider=gdrive&limit=1`
+- [x] `GET /api/connections/[connectionId]/resources?resource_id=X` → proxies `GET /connections/{id}/resources/children?resource_id=X`
+- [x] `POST /api/knowledge-bases` → proxies `POST /knowledge_bases` (create KB with `connection_source_ids`)
+- [x] `GET /api/knowledge-bases/[kbId]/sync` → proxies `GET /knowledge_bases/sync/trigger/{kbId}/{orgId}`
+- [x] `GET /api/knowledge-bases/[kbId]/resources?resource_path=X` → proxies `GET /knowledge_bases/{kbId}/resources/children?resource_path=X`
+- [x] `DELETE /api/knowledge-bases/[kbId]/resources?resource_path=X` → proxies `DELETE /knowledge_bases/{kbId}/resources?resource_path=X`
+- [x] Handle pagination: forward `next_cursor` / `current_cursor` transparently
+- [x] Consistent BFF error shape: `{ error: string; status: number }`
+- [x] Zod validation on incoming request bodies
+- [x] Proper HTTP status codes: 200, 400, 401, 404, 500
 
 **WOW Detail:**
 
-- [ ] Shared auth helper: `getStackAIHeaders()` — acquires and caches token server-side
-- [ ] Auth token cached in memory with expiry check (don't re-auth every request)
-- [ ] Rate limit awareness: return `Retry-After` header on 429
+- [x] Shared auth helper: `getStackAIHeaders()` — acquires and caches token server-side
+- [x] Auth token cached in memory with expiry check (don't re-auth every request)
+- [x] Rate limit awareness: return `Retry-After` header on 429
 
 ---
 
@@ -101,7 +101,7 @@
 - [ ] `useCreateKB()` — mutation to create knowledge base with `connection_source_ids`
 - [ ] `useSyncKB()` — triggers sync and sets up polling for status changes
 - [ ] `useDeleteKBResource()` — mutation with optimistic removal + rollback
-- [ ] QueryClient defaults: `staleTime: 5 * 60 * 1000`, `gcTime: 10 * 60 * 1000`
+- [x] QueryClient defaults: `staleTime: 5 * 60 * 1000`, `gcTime: 10 * 60 * 1000`
 - [ ] Previously visited folders show cached data instantly on re-navigation
 - [ ] Handle API pagination (`next_cursor`) — either load all pages or implement infinite scroll
 
@@ -361,8 +361,8 @@
 
 **Acceptance Criteria:**
 
-- [ ] Global `error.tsx` boundary at app level
-- [ ] Toast notification system (Shadcn Sonner)
+- [x] Global `error.tsx` boundary at app level
+- [x] Toast notification system (Shadcn Sonner)
 - [ ] All mutations have `onError` with user-friendly message
 - [ ] API routes return structured errors (never raw stack traces)
 - [ ] Network errors show "Connection lost — check your internet" (not technical jargon)
@@ -379,6 +379,6 @@
 
 - [ ] Skeleton component matches FileRow height and layout exactly
 - [ ] Number of skeleton rows matches expected content or fills viewport
-- [ ] `loading.tsx` file for app-level suspense
+- [x] `loading.tsx` file for app-level suspense
 - [ ] Transitions between loading → loaded are smooth (no flash)
 - [ ] Second visit to same folder: no loading state (cached data)

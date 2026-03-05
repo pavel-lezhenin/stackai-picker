@@ -160,11 +160,10 @@ import type { Resource, ResourceStatus } from '@/types/resource';
 
 ### Git Discipline (Trunk-Based Development)
 
-- **Single branch**: All work happens on `main`. No long-lived feature branches.
-- **Commit directly to `main`**: Small, safe, incremental commits that keep the trunk green at all times.
-- **Every commit must be deployable**: `main` is always in a shippable state. Never push broken code.
+- **Short-lived feature branches**: One branch per epic/feature, merged to `main` via PR within days. No long-lived branches.
+- **`main` always deployable**: `main` is always in a shippable state. Never merge broken code.
 - **Small, focused commits**: Each commit does ONE thing. A feature may span multiple commits — that's fine.
 - **Conventional Commits**: `feat:`, `fix:`, `refactor:`, `chore:`, `docs:` prefixes. Example: `feat: add folder navigation with breadcrumbs`
 - **No feature flags needed** at this project scale — features land complete or as safe increments.
-- **Pre-commit checks**: Run `npm run lint && npm run typecheck` before every commit. CI enforces this on push.
+- **Pre-commit checks**: Run `npm run lint && npm run typecheck` before every commit. CI enforces this on PR.
 - Never commit `.env.local` or API credentials.

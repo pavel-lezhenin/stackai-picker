@@ -14,8 +14,10 @@ export type BffResponse<T> = { data: T } | { error: string; status: number };
 export const PaginatedResponseSchema = <T extends z.ZodType>(itemSchema: T) =>
   z.object({
     data: z.array(itemSchema),
-    next_cursor: z.string().nullable(),
-    current_cursor: z.string().nullable(),
+    // Cursor fields may be absent if the KB has a single page — made optional to avoid
+    // Zod parse failures with API responses that omit them entirely
+    next_cursor: z.string().nullable().optional(),
+    current_cursor: z.string().nullable().optional(),
   });
 
 export type PaginatedResponse<T> = {
