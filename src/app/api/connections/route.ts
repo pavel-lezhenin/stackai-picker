@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
 
 import { getStackAIHeaders, stackUrl, toBffError } from '@/lib/auth';
-import { ConnectionSchema } from '@/types/resource';
+import { ConnectionSchema, V1ListResponseSchema } from '@/types/resource';
 
 export async function GET() {
   try {
     const headers = await getStackAIHeaders();
-    const response = await fetch(stackUrl('/connections?connection_provider=gdrive&limit=1'), {
-      headers,
-    });
+    const url = stackUrl('/v1/connections?connection_provider=gdrive&limit=1&offset=0');
+    const response = await fetch(url, { headers });
 
     if (!response.ok) {
       const text = await response.text();
@@ -19,9 +18,9 @@ export async function GET() {
     }
 
     const json: unknown = await response.json();
-    const connections = ConnectionSchema.array().parse(json);
+    const parsed = V1ListResponseSchema(ConnectionSchema).parse(json);
 
-    return NextResponse.json({ data: connections });
+    return NextResponse.json({ data: parsed.data });
   } catch (error) {
     const { body, status } = toBffError(error);
     return NextResponse.json(body, { status });

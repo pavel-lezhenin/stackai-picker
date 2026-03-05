@@ -23,6 +23,11 @@ const STATUS_CONFIG = {
     icon: Loader2,
     className: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
   },
+  resource: {
+    label: 'Not Indexed',
+    icon: Minus,
+    className: 'bg-muted text-muted-foreground border-border',
+  },
   none: {
     label: 'Not Indexed',
     icon: Minus,

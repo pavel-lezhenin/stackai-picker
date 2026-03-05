@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getStackAIHeaders, stackUrl, toBffError } from '@/lib/auth';
 
+/** UUID v4 pattern — validates org_id before embedding it in the URL path */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Trigger KB sync. Requires org_id as query param.
  * The org_id is fetched client-side from /api/organizations/me and forwarded here.
@@ -18,8 +21,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
+    // Validate UUID format to prevent path traversal — org_id is embedded in URL path
+    if (!UUID_RE.test(orgId) || !UUID_RE.test(kbId)) {
+      return NextResponse.json(
+        { error: 'Invalid identifier format', status: 400 },
+        { status: 400 },
+      );
+    }
+
     const headers = await getStackAIHeaders();
-    const response = await fetch(stackUrl(`/knowledge_bases/sync/trigger/${kbId}/${orgId}`), {
+    const response = await fetch(stackUrl(`/v1/knowledge_bases/sync/trigger/${kbId}/${orgId}`), {
       headers,
     });
 

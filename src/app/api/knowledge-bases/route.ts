@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const body = CreateKBBodySchema.parse(rawBody);
 
     const headers = await getStackAIHeaders();
-    const response = await fetch(stackUrl('/knowledge_bases'), {
+    const response = await fetch(stackUrl('/v1/knowledge_bases'), {
       method: 'POST',
       headers,
       body: JSON.stringify({

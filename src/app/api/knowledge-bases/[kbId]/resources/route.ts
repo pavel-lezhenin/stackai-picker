@@ -11,7 +11,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const resourcePath = request.nextUrl.searchParams.get('resource_path') ?? '/';
     const cursor = request.nextUrl.searchParams.get('cursor');
 
-    const url = new URL(stackUrl(`/knowledge_bases/${kbId}/resources/children`));
+    const url = new URL(stackUrl(`/v1/knowledge_bases/${kbId}/resources/children`));
     url.searchParams.set('resource_path', resourcePath);
     if (cursor) url.searchParams.set('cursor', cursor);
 
@@ -50,7 +50,7 @@ export async function DELETE(
     const body = DeleteResourceBodySchema.parse(rawBody);
 
     const headers = await getStackAIHeaders();
-    const url = new URL(stackUrl(`/knowledge_bases/${kbId}/resources`));
+    const url = new URL(stackUrl(`/v1/knowledge_bases/${kbId}/resources`));
     url.searchParams.set('resource_path', body.resource_path);
 
     const response = await fetch(url.toString(), {

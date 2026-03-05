@@ -17,7 +17,7 @@ export const ConnectionResourceSchema = z.object({
   resource_id: z.string(),
   inode_type: z.enum(['directory', 'file']),
   inode_path: z.object({ path: z.string() }),
-  status: z.enum(['indexed', 'pending']).nullable().optional(),
+  status: z.string().nullable().optional(),
   created_at: z.string().nullable().optional(),
   modified_at: z.string().nullable().optional(),
 });
@@ -28,7 +28,7 @@ export const KBResourceSchema = z.object({
   resource_id: z.string(),
   inode_type: z.enum(['directory', 'file']),
   inode_path: z.object({ path: z.string() }),
-  status: z.enum(['indexed', 'pending']).nullable().optional(),
+  status: z.string().nullable().optional(),
   created_at: z.string().nullable().optional(),
   modified_at: z.string().nullable().optional(),
 });
@@ -38,17 +38,24 @@ export type KBResource = z.infer<typeof KBResourceSchema>;
 export const ConnectionSchema = z.object({
   connection_id: z.string(),
   name: z.string().optional(),
-  connection_provider: z.string(),
+  provider_id: z.string().optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });
+
+/** Wrapper for /v1/ endpoints that return { status_code, data, ... } */
+export const V1ListResponseSchema = <T extends z.ZodType>(itemSchema: T) =>
+  z.object({
+    status_code: z.number(),
+    data: z.array(itemSchema),
+  });
 
 export type Connection = z.infer<typeof ConnectionSchema>;
 
 // --- Internal UI shapes ---
 
 export type ResourceType = 'file' | 'folder';
-export type ResourceStatus = 'indexed' | 'pending' | null;
+export type ResourceStatus = 'indexed' | 'pending' | 'resource' | null;
 
 export type Resource = {
   resourceId: string;
@@ -74,11 +81,12 @@ export function mapInodeType(inodeType: 'directory' | 'file'): ResourceType {
 
 /** Transform raw API resource into internal Resource shape */
 export function toResource(raw: ConnectionResource | KBResource): Resource {
+  const status = raw.status as ResourceStatus;
   return {
     resourceId: raw.resource_id,
     name: extractName(raw.inode_path.path),
     type: mapInodeType(raw.inode_type),
-    status: raw.status ?? null,
+    status: status ?? null,
     modifiedAt: raw.modified_at ?? null,
     path: raw.inode_path.path,
   };

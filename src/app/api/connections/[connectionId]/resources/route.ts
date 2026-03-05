@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 import { getStackAIHeaders, stackUrl, toBffError } from '@/lib/auth';
-import { PaginatedResponseSchema } from '@/types/api';
 import { ConnectionResourceSchema } from '@/types/resource';
 
 export async function GET(
@@ -14,7 +14,7 @@ export async function GET(
     const resourceId = searchParams.get('resource_id');
     const cursor = searchParams.get('cursor');
 
-    const url = new URL(stackUrl(`/connections/${connectionId}/resources/children`));
+    const url = new URL(stackUrl(`/v1/connections/${connectionId}/resources/children`));
     if (resourceId) url.searchParams.set('resource_id', resourceId);
     if (cursor) url.searchParams.set('cursor', cursor);
 
@@ -30,9 +30,9 @@ export async function GET(
     }
 
     const json: unknown = await response.json();
-    const validated = PaginatedResponseSchema(ConnectionResourceSchema).parse(json);
+    const parsed = z.object({ data: z.array(ConnectionResourceSchema) }).parse(json);
 
-    return NextResponse.json({ data: validated });
+    return NextResponse.json({ data: parsed.data });
   } catch (error) {
     const { body, status } = toBffError(error);
     return NextResponse.json(body, { status });

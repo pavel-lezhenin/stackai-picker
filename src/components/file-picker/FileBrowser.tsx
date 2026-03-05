@@ -57,9 +57,8 @@ export function FileBrowser() {
     setFolderStack((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev));
   }, []);
 
-  const handleDelete = useCallback((resourceId: string, name: string) => {
-    // Will be connected to delete mutation in US-2.1
-    console.warn('Delete not yet implemented:', resourceId, name);
+  const handleDelete = useCallback((_resourceId: string, _name: string) => {
+    // TODO: connect to useDeleteKBResource mutation (US-2.1)
   }, []);
 
   const handleRetry = useCallback(() => {
@@ -86,19 +85,21 @@ export function FileBrowser() {
             {folderStack.map((entry, index) => {
               const isLast = index === folderStack.length - 1;
               return (
-                <BreadcrumbItem key={entry.id ?? 'root'}>
+                <span key={entry.id ?? 'root'} className="contents">
                   {index > 0 && <BreadcrumbSeparator />}
-                  {isLast ? (
-                    <BreadcrumbPage>{entry.name}</BreadcrumbPage>
-                  ) : (
-                    <BreadcrumbLink
-                      className="cursor-pointer hover:underline"
-                      onClick={() => handleBreadcrumbClick(index)}
-                    >
-                      {entry.name}
-                    </BreadcrumbLink>
-                  )}
-                </BreadcrumbItem>
+                  <BreadcrumbItem>
+                    {isLast ? (
+                      <BreadcrumbPage>{entry.name}</BreadcrumbPage>
+                    ) : (
+                      <BreadcrumbLink
+                        className="cursor-pointer hover:underline"
+                        onClick={() => handleBreadcrumbClick(index)}
+                      >
+                        {entry.name}
+                      </BreadcrumbLink>
+                    )}
+                  </BreadcrumbItem>
+                </span>
               );
             })}
           </BreadcrumbList>

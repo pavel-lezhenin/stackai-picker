@@ -36,8 +36,10 @@ export function useSyncKB() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (params: { kbId: string; orgId: string }) =>
-      apiFetch<unknown>(`/knowledge-bases/${params.kbId}/sync?org_id=${params.orgId}`),
+    mutationFn: (params: { kbId: string; orgId: string }) => {
+      const qs = new URLSearchParams({ org_id: params.orgId });
+      return apiFetch<unknown>(`/knowledge-bases/${params.kbId}/sync?${qs}`);
+    },
     onSuccess: (_data, variables) => {
       toast.success('Indexing started — files will be indexed shortly');
       // Invalidate KB resources to pick up status changes on next fetch

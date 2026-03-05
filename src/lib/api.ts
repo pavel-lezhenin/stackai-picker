@@ -23,6 +23,7 @@ export async function apiFetch<T>(endpoint: string, options?: RequestInit): Prom
   const json: unknown = await response.json();
 
   if (!response.ok) {
+    // BFF always returns { error: string } — safe to cast after checking !response.ok
     const errorBody = json as { error?: string };
     throw new ApiError(
       errorBody?.error ?? `Request failed with status ${response.status}`,
@@ -30,5 +31,6 @@ export async function apiFetch<T>(endpoint: string, options?: RequestInit): Prom
     );
   }
 
+  // BFF wraps all success responses in { data: T } envelope (see api.ts BffResponse type)
   return (json as { data: T }).data;
 }
