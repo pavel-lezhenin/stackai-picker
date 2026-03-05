@@ -34,7 +34,7 @@ export function FileBrowser() {
 
   const currentFolder = folderStack[folderStack.length - 1];
   const {
-    resources,
+    data: resources = [],
     isLoading: isResLoading,
     isError: isResError,
     error: resError,

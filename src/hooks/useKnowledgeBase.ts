@@ -1,26 +1,86 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { apiFetch } from '@/lib/api';
-import { resourceKeys } from '@/types/resource';
+import { prepareOptimisticUpdate, rollbackOptimisticUpdate } from '@/lib/optimistic';
+import { deduplicateForIndexing, resourceKeys, toResource } from '@/types/resource';
 
 import type { KnowledgeBase } from '@/types/api';
-import type { Resource } from '@/types/resource';
+import type { KBResource, Resource } from '@/types/resource';
+import type { PaginatedResponse } from '@/types/api';
+
+// --- List Knowledge Base Resources ---
+
+/**
+ * Fetches all pages of KB resources with indexed status.
+ * Polls every 3s while any resource is in "pending" status — stops automatically
+ * once all resources reach a terminal state (indexed / resource).
+ */
+export function useKBResources(kbId: string | undefined, resourcePath: string = '/') {
+  return useQuery({
+    queryKey: resourceKeys.kbResourceList(kbId ?? '', resourcePath),
+    queryFn: async (): Promise<KBResource[]> => {
+      const all: KBResource[] = [];
+      let cursor: string | null = null;
+
+      do {
+        const params = new URLSearchParams({ resource_path: resourcePath });
+        if (cursor) params.set('cursor', cursor);
+
+        const page = await apiFetch<PaginatedResponse<KBResource>>(
+          `/knowledge-bases/${kbId}/resources?${params}`,
+        );
+        all.push(...page.data);
+        cursor = page.next_cursor ?? null;
+      } while (cursor);
+
+      return all;
+    },
+    enabled: !!kbId,
+    staleTime: 5 * 60 * 1000,
+    // Auto-poll while any resource is still being indexed
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return false;
+      return data.some((r) => r.status === 'pending') ? 3000 : false;
+    },
+    select: (data): Resource[] =>
+      data.map(toResource).sort((a, b) => {
+        if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      }),
+  });
+}
 
 // --- Create Knowledge Base ---
 
 export function useCreateKB() {
   return useMutation({
-    mutationFn: (params: { connectionId: string; resourceIds: string[] }) =>
-      apiFetch<KnowledgeBase>('/knowledge-bases', {
+    /**
+     * Accepts a resource selection and deduplicates before creating the KB:
+     * if a folder is selected alongside its children, only the folder is sent
+     * to avoid duplicate indexing work on the server.
+     */
+    mutationFn: (params: { connectionId: string; resources: Resource[] }) => {
+      const connectionSourceIds = deduplicateForIndexing(params.resources);
+      return apiFetch<KnowledgeBase>('/knowledge-bases', {
         method: 'POST',
         body: JSON.stringify({
           connection_id: params.connectionId,
-          connection_source_ids: params.resourceIds,
+          connection_source_ids: connectionSourceIds,
+          indexing_params: {
+            ocr: false,
+            unstructured: true,
+            embedding_params: { embedding_model: 'text-embedding-ada-002', api_key: null },
+            chunker_params: { chunk_size: 1500, chunk_overlap: 500, chunker: 'sentence' },
+          },
+          org_level_role: null,
+          cron_job_id: null,
         }),
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success('Knowledge Base created successfully');
     },
@@ -66,45 +126,19 @@ export function useDeleteKBResource(kbId: string) {
       }),
 
     onMutate: async (resourcePath) => {
-      // Cancel outgoing queries for this KB
-      await queryClient.cancelQueries({
-        queryKey: resourceKeys.kbResources(),
-      });
-
-      // Snapshot all KB resource queries for rollback
-      const previousData = queryClient.getQueriesData({
-        queryKey: resourceKeys.kbResources(),
-      });
-
-      // Optimistically remove from all matching queries
-      queryClient.setQueriesData({ queryKey: resourceKeys.kbResources() }, (old: unknown) => {
-        if (!old || typeof old !== 'object') return old;
-        const data = old as { data: Resource[] };
-        if (!Array.isArray(data.data)) return old;
-        return {
-          ...data,
-          data: data.data.filter((r: Resource) => r.path !== resourcePath),
-        };
-      });
-
-      return { previousData };
+      // Optimistically remove the resource from all KB resource lists
+      return prepareOptimisticUpdate<Resource[]>(queryClient, resourceKeys.kbResources(), (prev) =>
+        prev.filter((r) => r.path !== resourcePath),
+      );
     },
 
     onError: (error: Error, _resourcePath, context) => {
-      // Rollback to snapshot
-      if (context?.previousData) {
-        for (const [queryKey, data] of context.previousData) {
-          queryClient.setQueryData(queryKey, data);
-        }
-      }
+      if (context) rollbackOptimisticUpdate(queryClient, context.previousData);
       toast.error(`Failed to remove resource: ${error.message}`);
     },
 
     onSettled: () => {
-      // Sync with server truth
-      queryClient.invalidateQueries({
-        queryKey: resourceKeys.kbResources(),
-      });
+      queryClient.invalidateQueries({ queryKey: resourceKeys.kbResources() });
     },
 
     onSuccess: (_data, resourcePath) => {

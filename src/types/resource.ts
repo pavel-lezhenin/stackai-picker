@@ -125,6 +125,19 @@ export function getFileTypeIcon(
   return FILE_TYPE_ICONS[ext] ?? FILE_TYPE_ICONS.default;
 }
 
+/**
+ * Deduplicates a resource selection before sending to Knowledge Base indexing.
+ * If a folder is selected, any of its descendants in the selection are dropped —
+ * passing both causes duplicate indexing work on the server (see API_REFERENCE.md).
+ */
+export function deduplicateForIndexing(resources: Resource[]): string[] {
+  const folderPaths = resources.filter((r) => r.type === 'folder').map((r) => r.path);
+
+  return resources
+    .filter((r) => !folderPaths.some((fp) => r.path !== fp && r.path.startsWith(`${fp}/`)))
+    .map((r) => r.resourceId);
+}
+
 // --- Query key factory ---
 
 export const resourceKeys = {
