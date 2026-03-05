@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 
 import { getStackAIHeaders, stackUrl, toBffError } from '@/lib/auth';
+import { PaginatedResponseSchema } from '@/types/api';
 import { ConnectionResourceSchema } from '@/types/resource';
 
 export async function GET(
@@ -30,9 +30,10 @@ export async function GET(
     }
 
     const json: unknown = await response.json();
-    const parsed = z.object({ data: z.array(ConnectionResourceSchema) }).parse(json);
+    // Parse as paginated — next_cursor is optional (actual API may omit it)
+    const parsed = PaginatedResponseSchema(ConnectionResourceSchema).parse(json);
 
-    return NextResponse.json({ data: parsed.data });
+    return NextResponse.json({ data: parsed });
   } catch (error) {
     const { body, status } = toBffError(error);
     return NextResponse.json(body, { status });

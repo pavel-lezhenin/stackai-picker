@@ -94,25 +94,25 @@
 
 **Acceptance Criteria:**
 
-- [ ] Query key factory: `resourceKeys.all`, `.lists()`, `.list(connId, folderId)`
-- [ ] `useConnection()` — fetches first gdrive connection, caches aggressively
-- [ ] `useResources(connectionId, folderId?)` — returns typed resource list with pagination
-- [ ] `useKBResources(kbId, resourcePath)` — returns KB resources with indexed status
-- [ ] `useCreateKB()` — mutation to create knowledge base with `connection_source_ids`
-- [ ] `useSyncKB()` — triggers sync and sets up polling for status changes
-- [ ] `useDeleteKBResource()` — mutation with optimistic removal + rollback
+- [x] Query key factory: `resourceKeys.all`, `.lists()`, `.list(connId, folderId)`
+- [x] `useConnection()` — fetches first gdrive connection, caches aggressively
+- [x] `useResources(connectionId, folderId?)` — returns typed resource list with pagination
+- [x] `useKBResources(kbId, resourcePath)` — returns KB resources with indexed status
+- [x] `useCreateKB()` — mutation to create knowledge base with `connection_source_ids`
+- [x] `useSyncKB()` — triggers sync and sets up polling for status changes
+- [x] `useDeleteKBResource()` — mutation with optimistic removal + rollback
 - [x] QueryClient defaults: `staleTime: 5 * 60 * 1000`, `gcTime: 10 * 60 * 1000`
-- [ ] Previously visited folders show cached data instantly on re-navigation
-- [ ] Handle API pagination (`next_cursor`) — either load all pages or implement infinite scroll
+- [x] Previously visited folders show cached data instantly on re-navigation
+- [x] Handle API pagination (`next_cursor`) — either load all pages or implement infinite scroll
 
 **WOW Detail:**
 
-- [ ] Optimistic update helper utility used across all mutations (DRY, teachable pattern)
-- [ ] `onMutate` → snapshot previous state, apply optimistic change
-- [ ] `onError` → rollback from snapshot, show error toast with specific message
-- [ ] `onSettled` → invalidate to sync with server truth
-- [ ] `select` used to transform `inode_type`/`inode_path` shapes into clean Resource type
-- [ ] Smart de-duplication: when indexing a folder, auto-exclude its children from `connection_source_ids`
+- [x] Optimistic update helper utility used across all mutations (DRY, teachable pattern)
+- [x] `onMutate` → snapshot previous state, apply optimistic change
+- [x] `onError` → rollback from snapshot, show error toast with specific message
+- [x] `onSettled` → invalidate to sync with server truth
+- [x] `select` used to transform `inode_type`/`inode_path` shapes into clean Resource type
+- [x] Smart de-duplication: when indexing a folder, auto-exclude its children from `connection_source_ids`
 
 ---
 
