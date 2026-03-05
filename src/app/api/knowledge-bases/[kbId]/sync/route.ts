@@ -9,7 +9,10 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * Trigger KB sync. Requires org_id as query param.
  * The org_id is fetched client-side from /api/organizations/me and forwarded here.
  */
-export async function GET(request: NextRequest, { params }: { params: Promise<{ kbId: string }> }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ kbId: string }> },
+) {
   try {
     const { kbId } = await params;
     const orgId = request.nextUrl.searchParams.get('org_id');

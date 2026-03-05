@@ -98,7 +98,7 @@ export function useSyncKB() {
   return useMutation({
     mutationFn: (params: { kbId: string; orgId: string }) => {
       const qs = new URLSearchParams({ org_id: params.orgId });
-      return apiFetch<unknown>(`/knowledge-bases/${params.kbId}/sync?${qs}`);
+      return apiFetch<unknown>(`/knowledge-bases/${params.kbId}/sync?${qs}`, { method: 'POST' });
     },
     onSuccess: () => {
       toast.success('Indexing started — files will be indexed shortly');
@@ -173,7 +173,9 @@ export function useIndexResources() {
       });
 
       const qs = new URLSearchParams({ org_id: params.orgId });
-      await apiFetch<unknown>(`/knowledge-bases/${kb.knowledge_base_id}/sync?${qs}`);
+      await apiFetch<unknown>(`/knowledge-bases/${kb.knowledge_base_id}/sync?${qs}`, {
+        method: 'POST',
+      });
 
       return kb;
     },

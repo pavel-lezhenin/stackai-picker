@@ -1,4 +1,4 @@
-# ISS-6: Sync endpoint path, method, and parameter placement are all wrong in docs
+# ISS-6: Sync endpoint — wrong domain caused 404, not wrong path
 
 **Severity:** Blocker  
 **Found:** 2026-03-05  
@@ -12,40 +12,29 @@ The notebook documents the sync trigger as:
 GET /knowledge_bases/sync/trigger/{knowledge_base_id}/{org_id}
 ```
 
-The real API is:
+This returned 404 during development. The initial diagnosis attributed this to wrong path structure and HTTP method, but integration tests later disproved that.
 
-```
-POST /v1/knowledge-bases/{knowledge_base_id}/sync?org_id={org_id}
-```
+## Corrected Root Cause Analysis
 
-Four separate errors in the docs:
+Integration tests (see `tests/integration/api/knowledge-bases.test.ts`, ISS-6 block) confirmed:
 
-|                    | Documented                      | Actual                      |
-| ------------------ | ------------------------------- | --------------------------- |
-| HTTP method        | `GET`                           | `POST`                      |
-| Path structure     | `/sync/trigger/{kbId}/{orgId}`  | `/{kbId}/sync`              |
-| `org_id` placement | path segment                    | query parameter             |
-| Base path          | `/knowledge_bases` (underscore) | `/knowledge-bases` (hyphen) |
+- `GET /knowledge_bases/sync/trigger/{kbId}/{orgId}` on `api.stackai.com` → **202** — the legacy endpoint is alive
+- `POST /v1/knowledge-bases/{kbId}/sync?org_id={orgId}` on `api.stackai.com` → **202** — the new endpoint also works
 
-## How to Reproduce
+**The 404s seen during development were caused by ISS-2 (wrong domain) and ISS-5 (KB created on wrong domain, resulting in an invalid KB ID).** When sync was attempted, the KB ID did not exist on the correct domain, causing every URL variant to return 404 regardless of path structure.
 
-1. Implement sync using the documented `GET /knowledge_bases/sync/trigger/{kbId}/{orgId}`.
-2. After KB creation succeeds, the sync call fires.
-3. Observe: `404 Not Found` — tried multiple URL variants (`underscore`, `hyphen`, different path orders) all 404.
-4. The error is silent from the user perspective — KB is created but files never get indexed.
+## What the Docs Actually Get Wrong
 
-## Root Cause
+|                | Documented                     | Actual                                                |
+| -------------- | ------------------------------ | ----------------------------------------------------- |
+| Domain         | `api.stack-ai.com` (hyphen)    | `api.stackai.com` (no hyphen) — **ISS-2**             |
+| `/v1/` prefix  | absent                         | required — **ISS-3**                                  |
+| HTTP method    | `GET`                          | both `GET` (legacy) and `POST` (new) work             |
+| Path structure | `/sync/trigger/{kbId}/{orgId}` | legacy path works; new path is `/{kbId}/sync?org_id=` |
 
-Same root cause as ISS-5 — the notebook was written against an older API version. The sync trigger was refactored from a custom GET action into a standard REST `POST /{resource}/sync` pattern with query params. The notebook was not updated.
+## Fix Applied
 
-The `org_id` being embedded as a path segment (instead of a query param) is particularly misleading and caused multiple failed fix attempts.
-
-## Fix
-
-Updated `src/app/api/knowledge-bases/[kbId]/sync/route.ts`:
-
-- Method: changed handler from `GET` to `POST` toward upstream
-- URL: `POST https://api.stackai.com/v1/knowledge-bases/${kbId}/sync?org_id=${orgId}`
+Updated BFF `src/app/api/knowledge-bases/[kbId]/sync/route.ts` and client `src/hooks/useKnowledgeBase.ts` to use the modern REST convention — `POST /v1/knowledge-bases/{kbId}/sync?org_id={orgId}` — which is semantically correct (sync creates a background task, it is a mutation not a read) even though the legacy GET endpoint still responds.
 
 Successful upstream response:
 
