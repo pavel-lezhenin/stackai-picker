@@ -134,11 +134,11 @@ Every file must follow:
 
 ### 8. Git Strategy (Trunk-Based Development)
 
-- [ ] **Single branch**: All work on `main`, no long-lived feature branches
-- [ ] **Each commit deployable**: Every commit passes lint + typecheck + build
+- [ ] **Short-lived feature branches**: Branch per epic/feature, merge to `main` via PR within days
+- [ ] **`main` always deployable**: Every merge passes CI pipeline (lint + typecheck + build)
 - [ ] **Conventional Commits**: Messages use `feat:`, `fix:`, `refactor:`, `chore:`, `docs:` prefixes
 - [ ] **Incremental delivery**: Features land in small commits (Types → API → Hook → Component)
-- [ ] **CI pipeline**: Push to `main` triggers format → lint → typecheck → security → build
+- [ ] **CI pipeline**: PR triggers format → lint → typecheck → security → build
 
 ### 9. Caching Strategy
 

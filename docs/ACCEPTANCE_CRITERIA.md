@@ -33,11 +33,11 @@ These are the minimum requirements from the task spec. Failing any of these = re
 
 ### Tech Stack Compliance
 
-- [ ] Next.js 16 with App Router
-- [ ] TanStack Query v5 for data fetching
-- [ ] Tailwind CSS v4 for styling
-- [ ] Shadcn UI for components
-- [ ] TypeScript strict mode, zero `any`
+- [x] Next.js 16 with App Router
+- [x] TanStack Query v5 for data fetching
+- [x] Tailwind CSS v4 for styling
+- [x] Shadcn UI for components
+- [x] TypeScript strict mode, zero `any`
 
 ### Deployment
 
@@ -61,9 +61,9 @@ This is where most candidates stop. Exceeding here gets you to the interview.
 
 ### TypeScript Excellence
 
-- [ ] Zod schemas validate every API boundary (incoming responses, outgoing requests)
-- [ ] Discriminated unions for resource types (`type: 'file' | 'folder'`)
-- [ ] Const assertions for query key factories
+- [x] Zod schemas validate every API boundary (incoming responses, outgoing requests)
+- [x] Discriminated unions for resource types (`type: 'file' | 'folder'`)
+- [x] Const assertions for query key factories
 - [ ] Proper generic typing on TanStack Query hooks
 - [ ] No type assertions (`as`) except justified edge cases with comments
 
@@ -78,7 +78,7 @@ This is where most candidates stop. Exceeding here gets you to the interview.
 ### Performance
 
 - [ ] Skeleton loaders that match exact dimensions of loaded content (zero CLS)
-- [ ] `staleTime` configured to prevent unnecessary refetches during navigation
+- [x] `staleTime` configured to prevent unnecessary refetches during navigation
 - [ ] Query deduplication — navigating to a previously visited folder shows cached data instantly
 - [ ] Mutation responses used to update cache directly (not just invalidate-and-refetch)
 - [ ] No waterfall requests — parallel data loading where possible
@@ -121,9 +121,9 @@ These are the details that make an evaluator think "this person writes productio
 
 ### Code That Teaches
 
-- [ ] Query key factory pattern demonstrates team-scalable caching
+- [x] Query key factory pattern demonstrates team-scalable caching
 - [ ] Custom hook composition: `useResources` composes `useQuery` + data transformation (field mapping, type narrowing)
-- [ ] API error types are structured (not just string messages)
+- [x] API error types are structured (not just string messages)
 - [ ] API route middleware pattern for auth (reusable across routes)
 - [ ] Optimistic update helper that generalizes across mutations
 - [ ] Consistent response envelope: `{ data } | { error, status }` from all API routes
@@ -131,11 +131,11 @@ These are the details that make an evaluator think "this person writes productio
 
 ### Build & DX Quality
 
-- [ ] ESLint config with no warnings (not just no errors)
-- [ ] Import order convention (react → next → external → internal → types)
-- [ ] Path aliases (`@/components`, `@/hooks`, `@/types`)
+- [x] ESLint config with no warnings (not just no errors)
+- [x] Import order convention (react → next → external → internal → types)
+- [x] Path aliases (`@/components`, `@/hooks`, `@/types`)
 - [ ] Git history with meaningful commits (not one giant commit)
-- [ ] `.env.example` file documenting required variables
+- [x] `.env.example` file documenting required variables
 
 ---
 
