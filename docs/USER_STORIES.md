@@ -319,10 +319,10 @@
 
 **WOW Detail:**
 
-- [ ] Keyboard shortcut: `Cmd+K` or `/` focuses search input
+- [x] Keyboard shortcut: `Cmd+K` or `/` focuses search input
 - [x] Search input has `magnifying glass` icon prefix
-- [ ] Matching text highlighted in results (bold the matching substring)
-- [ ] Escape key clears search and returns focus to file list
+- [x] Matching text highlighted in results (bold the matching substring)
+- [x] Escape key clears search and returns focus to file list
 
 ---
 

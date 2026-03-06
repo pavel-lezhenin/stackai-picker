@@ -20,6 +20,8 @@ type FileRowProps = {
   path: string;
   /** The full Resource object — passed to onIndex without re-constructing */
   resource: Resource;
+  /** Substring to highlight in the file name (from search input) */
+  searchHighlight?: string;
   /** True while the exit animation runs (before row is removed from cache) */
   isDeleting?: boolean;
   /** True while the DELETE request is in-flight */
@@ -49,6 +51,7 @@ export const FileRow = memo(function FileRow({
   modifiedAt,
   path,
   resource,
+  searchHighlight = '',
   isDeleting = false,
   isPendingDelete = false,
   isIndexing = false,
@@ -121,7 +124,9 @@ export const FileRow = memo(function FileRow({
           className={cn('h-4 w-4 shrink-0', isFolder ? 'text-amber-500' : 'text-muted-foreground')}
           aria-hidden="true"
         />
-        <span className={cn('truncate text-sm', isFolder && 'font-semibold')}>{name}</span>
+        <span className={cn('truncate text-sm', isFolder && 'font-semibold')}>
+          <HighlightedName name={name} query={searchHighlight} />
+        </span>
       </div>
 
       {/* Status */}
@@ -225,3 +230,24 @@ export const FileRow = memo(function FileRow({
     </div>
   );
 });
+
+/** Renders name with the matching substring bolded. Case-insensitive. */
+function HighlightedName({ name, query }: { name: string; query: string }) {
+  if (!query) return <>{name}</>;
+  const lowerName = name.toLowerCase();
+  const lowerQuery = query.toLowerCase().trim();
+  const idx = lowerName.indexOf(lowerQuery);
+  if (idx === -1) return <>{name}</>;
+
+  const before = name.slice(0, idx);
+  const match = name.slice(idx, idx + lowerQuery.length);
+  const after = name.slice(idx + lowerQuery.length);
+
+  return (
+    <>
+      {before}
+      <span className="font-bold text-foreground">{match}</span>
+      {after}
+    </>
+  );
+}

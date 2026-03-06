@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback, useEffect, useRef } from 'react';
 import { AlertTriangle, ArrowDown, ArrowUp, FolderOpen, Search, X } from 'lucide-react';
 
 import { FileRow } from '@/components/file-picker/FileRow';
@@ -54,6 +55,32 @@ export function FileList({
   onDeindex,
   onRetry,
 }: FileListProps) {
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // "/" focuses search, Escape clears and blurs
+  const handleSearchKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Escape') {
+        onClearSearch();
+        searchRef.current?.blur();
+      }
+    },
+    [onClearSearch],
+  );
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key === '/') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   if (isLoading) {
     return <FileListSkeleton />;
   }
@@ -93,10 +120,12 @@ export function FileList({
       <div className="flex items-center gap-2 px-4 py-2 border-b border-border">
         <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         <input
+          ref={searchRef}
           type="text"
-          placeholder="Search files…"
+          placeholder="Search files… (press / to focus)"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
           className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60"
           aria-label="Search files"
         />
@@ -183,6 +212,7 @@ export function FileList({
               status={resource.status}
               modifiedAt={resource.modifiedAt}
               path={resource.path}
+              searchHighlight={debouncedQuery}
               isDeleting={deletingId === resource.resourceId}
               isPendingDelete={pendingDeleteId === resource.resourceId}
               isIndexing={isIndexing && resource.status === 'pending'}
