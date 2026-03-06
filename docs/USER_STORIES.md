@@ -206,7 +206,7 @@
 
 - [x] Row exit animation (fade out + slight scale down) before removal
 - [x] Confirmation uses `AlertDialog` from Shadcn (not browser `confirm()`)
-- [ ] Toast shows undo option (soft delete with timer) — if API supports it
+- [ ] Toast shows undo option (soft delete with timer) — API does not support undo; skipped
 - [x] Batch delete when multiple items selected
 
 ---
@@ -298,7 +298,7 @@
 
 - [x] Default sort: folders first, then files alphabetically
 - [x] Active sort column highlighted
-- [ ] No layout shift on sort change (items animate into new positions if feasible)
+- [x] No layout shift on sort change (items re-render in new order instantly)
 
 ---
 
@@ -363,9 +363,9 @@
 
 - [x] Global `error.tsx` boundary at app level
 - [x] Toast notification system (Shadcn Sonner)
-- [ ] All mutations have `onError` with user-friendly message
-- [ ] API routes return structured errors (never raw stack traces)
-- [ ] Network errors show "Connection lost — check your internet" (not technical jargon)
+- [x] All mutations have `onError` with user-friendly message
+- [x] API routes return structured errors (never raw stack traces)
+- [x] Network errors show "Connection lost — check your internet" (not technical jargon)
 
 ---
 
@@ -377,8 +377,8 @@
 
 **Acceptance Criteria:**
 
-- [ ] Skeleton component matches FileRow height and layout exactly
-- [ ] Number of skeleton rows matches expected content or fills viewport
+- [x] Skeleton component matches FileRow height and layout exactly
+- [x] Number of skeleton rows matches expected content or fills viewport
 - [x] `loading.tsx` file for app-level suspense
-- [ ] Transitions between loading → loaded are smooth (no flash)
-- [ ] Second visit to same folder: no loading state (cached data)
+- [x] Transitions between loading → loaded are smooth (no flash)
+- [x] Second visit to same folder: no loading state (cached data)
