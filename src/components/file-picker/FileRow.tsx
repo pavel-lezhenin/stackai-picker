@@ -1,12 +1,14 @@
 'use client';
 
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 
 import { ActionButtons } from '@/components/file-picker/ActionButtons';
 import { FileRowContextMenu } from '@/components/file-picker/FileRowContextMenu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { StatusBadge } from '@/components/file-picker/StatusBadge';
-import { cn } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
+import { FileNameCell } from '@/components/file-picker/FileNameCell';
+import { useFileRowHandlers } from '@/hooks/useFileRowHandlers';
 import { getFileTypeIcon } from '@/types/resource';
 
 import type { Resource, ResourceStatus, ResourceType } from '@/types/resource';
@@ -37,15 +39,6 @@ type FileRowProps = {
   onToggleSelect: (resourceId: string, shiftKey: boolean) => void;
 };
 
-function formatDate(iso: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
 export const FileRow = memo(function FileRow({
   resourceId,
   name,
@@ -70,37 +63,15 @@ export const FileRow = memo(function FileRow({
   // isPending prevents row selection while indexing is in-flight (optimistic status may not have propagated yet)
   const isPending = status === 'pending' || isIndexing;
 
-  const handleRowClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (!isPending) onToggleSelect(resourceId, e.shiftKey);
-    },
-    [isPending, resourceId, onToggleSelect],
-  );
-
-  const handleDoubleClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (isFolder) {
-        e.preventDefault();
-        onNavigate(resourceId, name, path);
-      }
-    },
-    [isFolder, resourceId, name, path, onNavigate],
-  );
-
-  const handleNavigate = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onNavigate(resourceId, name, path);
-    },
-    [resourceId, name, path, onNavigate],
-  );
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && isFolder) onNavigate(resourceId, name, path);
-    },
-    [isFolder, resourceId, name, path, onNavigate],
-  );
+  const { handleRowClick, handleDoubleClick, handleNavigate, handleKeyDown } = useFileRowHandlers({
+    resourceId,
+    name,
+    path,
+    isFolder,
+    isPending,
+    onNavigate,
+    onToggleSelect,
+  });
 
   return (
     <FileRowContextMenu
@@ -147,28 +118,13 @@ export const FileRow = memo(function FileRow({
             aria-label={`Select ${name}`}
           />
         </div>
-        {/* Name + Icon */}
-        {isFolder ? (
-          <div role="gridcell" className="flex items-center min-w-0">
-            <button
-              type="button"
-              className="flex items-center gap-3 min-w-0 -my-2.5 py-2.5 cursor-pointer hover:underline"
-              onClick={handleNavigate}
-            >
-              <Icon className="h-4 w-4 shrink-0 text-amber-500" aria-hidden="true" />
-              <span className="truncate text-sm font-semibold">
-                <HighlightedName name={name} query={searchHighlight} />
-              </span>
-            </button>
-          </div>
-        ) : (
-          <div role="gridcell" className="flex items-center gap-3 min-w-0">
-            <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-            <span className="truncate text-sm">
-              <HighlightedName name={name} query={searchHighlight} />
-            </span>
-          </div>
-        )}
+        <FileNameCell
+          name={name}
+          isFolder={isFolder}
+          icon={Icon}
+          searchHighlight={searchHighlight}
+          onNavigate={handleNavigate}
+        />
 
         {/* Status */}
         <div role="gridcell">
@@ -196,24 +152,3 @@ export const FileRow = memo(function FileRow({
     </FileRowContextMenu>
   );
 });
-
-/** Renders name with the matching substring bolded. Case-insensitive. */
-function HighlightedName({ name, query }: { name: string; query: string }) {
-  if (!query) return <>{name}</>;
-  const lowerName = name.toLowerCase();
-  const lowerQuery = query.toLowerCase().trim();
-  const idx = lowerName.indexOf(lowerQuery);
-  if (idx === -1) return <>{name}</>;
-
-  const before = name.slice(0, idx);
-  const match = name.slice(idx, idx + lowerQuery.length);
-  const after = name.slice(idx + lowerQuery.length);
-
-  return (
-    <>
-      {before}
-      <span className="font-bold text-foreground">{match}</span>
-      {after}
-    </>
-  );
-}
