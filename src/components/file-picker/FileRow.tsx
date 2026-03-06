@@ -68,10 +68,24 @@ export const FileRow = memo(function FileRow({
 }: FileRowProps) {
   const { icon: Icon, label: iconLabel } = getFileTypeIcon(name, type);
   const isFolder = type === 'folder';
+  const isNotIndexed = status === null || status === 'resource';
+  const isPending = status === 'pending' || isIndexing;
+  const isIndexed = status === 'indexed';
 
-  const handleClick = useCallback(() => {
-    if (isFolder) onNavigate(resourceId, name, path);
-  }, [isFolder, resourceId, name, path, onNavigate]);
+  const handleRowClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (!isPending) onToggleSelect(resourceId, e.shiftKey);
+    },
+    [isPending, resourceId, onToggleSelect],
+  );
+
+  const handleNavigate = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onNavigate(resourceId, name, path);
+    },
+    [resourceId, name, path, onNavigate],
+  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -86,14 +100,6 @@ export const FileRow = memo(function FileRow({
       onDelete(resourceId, name, path);
     },
     [resourceId, name, path, onDelete],
-  );
-
-  const handleCheckbox = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onToggleSelect(resourceId, e.shiftKey);
-    },
-    [resourceId, onToggleSelect],
   );
 
   const handleIndex = useCallback(
@@ -112,47 +118,56 @@ export const FileRow = memo(function FileRow({
     [path, onDeindex],
   );
 
-  const isNotIndexed = status === null || status === 'resource';
-  const isPending = status === 'pending' || isIndexing;
-  const isIndexed = status === 'indexed';
-
   return (
     <div
       role="row"
       tabIndex={0}
       className={cn(
         'group grid grid-cols-[28px_1fr_100px_120px_136px] items-center gap-4 px-4 py-2.5',
-        'border-b border-border/50 transition-all duration-200',
+        'border-b border-border/50 transition-[opacity,transform] duration-200',
         'hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none',
-        isFolder && 'cursor-pointer',
+        'active:bg-primary/10',
         isSelected && 'bg-primary/5',
         isDeleting && 'opacity-0 scale-95 pointer-events-none',
         isPendingDelete && 'opacity-60',
       )}
-      onClick={handleClick}
+      onClick={handleRowClick}
       onKeyDown={handleKeyDown}
       aria-label={`${iconLabel}: ${name}`}
       aria-selected={isSelected}
     >
       {/* Checkbox */}
-      <div role="gridcell" className="flex items-center" onClick={handleCheckbox}>
+      <div role="gridcell" className="flex items-center">
         <Checkbox
           checked={isSelected}
           disabled={isPending}
           tabIndex={-1}
+          className="pointer-events-none"
           aria-label={`Select ${name}`}
         />
       </div>
       {/* Name + Icon */}
-      <div role="gridcell" className="flex items-center gap-3 min-w-0">
-        <Icon
-          className={cn('h-4 w-4 shrink-0', isFolder ? 'text-amber-500' : 'text-muted-foreground')}
-          aria-hidden="true"
-        />
-        <span className={cn('truncate text-sm', isFolder && 'font-semibold')}>
-          <HighlightedName name={name} query={searchHighlight} />
-        </span>
-      </div>
+      {isFolder ? (
+        <div role="gridcell" className="flex items-center min-w-0">
+          <button
+            type="button"
+            className="flex items-center gap-3 min-w-0 -my-2.5 py-2.5 cursor-pointer hover:underline"
+            onClick={handleNavigate}
+          >
+            <Icon className="h-4 w-4 shrink-0 text-amber-500" aria-hidden="true" />
+            <span className="truncate text-sm font-semibold">
+              <HighlightedName name={name} query={searchHighlight} />
+            </span>
+          </button>
+        </div>
+      ) : (
+        <div role="gridcell" className="flex items-center gap-3 min-w-0">
+          <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <span className="truncate text-sm">
+            <HighlightedName name={name} query={searchHighlight} />
+          </span>
+        </div>
+      )}
 
       {/* Status */}
       <div role="gridcell">

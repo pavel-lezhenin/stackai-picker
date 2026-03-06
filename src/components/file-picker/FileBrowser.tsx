@@ -243,25 +243,23 @@ export function FileBrowser() {
       />
 
       <div className="flex-1 overflow-auto">
-        {!isConnLoading && !isError && (resources.length > 0 || isResLoading) && (
-          <div className="flex items-center gap-1 px-4 py-2 border-b border-border">
-            <span className="text-xs text-muted-foreground mr-1">Show:</span>
-            {(['all', 'indexed', 'not-indexed'] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setStatusFilter(f)}
-                className={cn(
-                  'text-xs px-2.5 py-0.5 rounded-full transition-colors',
-                  statusFilter === f
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-muted-foreground hover:bg-muted',
-                )}
-              >
-                {f === 'all' ? 'All' : f === 'indexed' ? 'Indexed' : 'Not Indexed'}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex items-center gap-1 px-4 py-2 border-b border-border">
+          <span className="text-xs text-muted-foreground mr-1">Show:</span>
+          {(['all', 'indexed', 'not-indexed'] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setStatusFilter(f)}
+              className={cn(
+                'text-xs px-2.5 py-0.5 rounded-full transition-colors',
+                statusFilter === f
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-muted-foreground hover:bg-muted',
+              )}
+            >
+              {f === 'all' ? 'All' : f === 'indexed' ? 'Indexed' : 'Not Indexed'}
+            </button>
+          ))}
+        </div>
         <FileList
           resources={sortedResources}
           isLoading={isLoading}
