@@ -81,10 +81,6 @@ export function FileList({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  if (isLoading) {
-    return <FileListSkeleton />;
-  }
-
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
@@ -102,7 +98,7 @@ export function FileList({
     );
   }
 
-  if (resources.length === 0 && !debouncedQuery) {
+  if (!isLoading && resources.length === 0 && !debouncedQuery) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
         <FolderOpen className="h-10 w-10 text-muted-foreground/50" />
@@ -116,7 +112,7 @@ export function FileList({
 
   return (
     <div role="grid" aria-label="File list">
-      {/* Search bar — always visible when totalCount > 0 */}
+      {/* Search bar — always visible (persists during loading) */}
       <div className="flex items-center gap-2 px-4 py-2 border-b border-border">
         <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         <input
@@ -126,7 +122,8 @@ export function FileList({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           onKeyDown={handleSearchKeyDown}
-          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60"
+          disabled={isLoading}
+          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60 disabled:opacity-50"
           aria-label="Search files"
         />
         {searchQuery && (
@@ -173,19 +170,24 @@ export function FileList({
           <SortIndicator field="modified" sort={sort} />
         </div>
         <div role="columnheader" className="text-right pr-1">
-          <span
-            aria-live="polite"
-            className="normal-case tracking-normal font-normal text-muted-foreground/70"
-          >
-            {indexedCount > 0
-              ? `${indexedCount} of ${totalCount} indexed`
-              : `${totalCount} item${totalCount !== 1 ? 's' : ''}`}
-          </span>
+          {!isLoading && (
+            <span
+              aria-live="polite"
+              className="normal-case tracking-normal font-normal text-muted-foreground/70"
+            >
+              {indexedCount > 0
+                ? `${indexedCount} of ${totalCount} indexed`
+                : `${totalCount} item${totalCount !== 1 ? 's' : ''}`}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Empty search results — search bar stays visible above */}
-      {resources.length === 0 && debouncedQuery && (
+      {/* Loading: skeleton rows (chrome stays above) */}
+      {isLoading && <FileListSkeleton />}
+
+      {/* Empty search results */}
+      {!isLoading && resources.length === 0 && debouncedQuery && (
         <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
           <Search className="h-10 w-10 text-muted-foreground/50" />
           <div>
@@ -201,7 +203,7 @@ export function FileList({
       )}
 
       {/* Rows */}
-      {resources.length > 0 && (
+      {!isLoading && resources.length > 0 && (
         <div className="transition-opacity duration-200">
           {resources.map((resource) => (
             <FileRow
