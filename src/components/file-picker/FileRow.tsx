@@ -79,6 +79,16 @@ export const FileRow = memo(function FileRow({
     [isPending, resourceId, onToggleSelect],
   );
 
+  const handleDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (isFolder) {
+        e.preventDefault();
+        onNavigate(resourceId, name, path);
+      }
+    },
+    [isFolder, resourceId, name, path, onNavigate],
+  );
+
   const handleNavigate = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -132,6 +142,7 @@ export const FileRow = memo(function FileRow({
         isPendingDelete && 'opacity-60',
       )}
       onClick={handleRowClick}
+      onDoubleClick={handleDoubleClick}
       onKeyDown={handleKeyDown}
       aria-label={`${iconLabel}: ${name}`}
       aria-selected={isSelected}

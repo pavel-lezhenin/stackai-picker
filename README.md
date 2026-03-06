@@ -2,7 +2,7 @@
 
 A custom Google Drive File Picker built for the [Stack AI](https://www.stack-ai.com/) platform. Browse, select, index, and manage Google Drive files and folders to build Knowledge Bases — all through an enterprise-grade UI.
 
-<!-- > **[Live Demo](https://stackai-picker.vercel.app)** · **[Demo Video](TODO)** -->
+> **[Live Demo](https://stackai-picker-topaz.vercel.app)**
 
 ---
 
@@ -44,10 +44,69 @@ src/
 
 ### Key Design Decisions
 
-- **BFF Pattern** — All Stack AI API calls go through Next.js API routes. The client never sees credentials or external URLs. This also normalizes error shapes and allows server-side token caching.
-- **Optimistic Updates** — Every mutation (index, de-index, delete) uses TanStack Query's `onMutate` → `onError` → `onSettled` pattern for instant UI feedback with automatic rollback on failure.
-- **SOLID Principles** — Components follow Single Responsibility (<100 lines each). File type icons use a `Record` map (Open/Closed). Components depend on hooks, never fetch functions (Dependency Inversion).
-- **Zero CLS** — Skeleton loaders match exact dimensions of loaded content. `staleTime` prevents layout shifts during navigation.
+#### BFF Proxy (Backend-for-Frontend)
+
+All Stack AI API calls go through Next.js API routes under `app/api/`. The client never sees credentials, external URLs, or raw API shapes.
+
+**Why?**
+
+1. **Security** — Supabase tokens and the service-account password stay server-side. No `NEXT_PUBLIC_` env vars needed.
+2. **Shape normalization** — The Stack AI API uses `inode_type: "directory"` and `inode_path.path` for file names. BFF routes transform these into a clean `Resource` type (`type: 'folder'`, `name: string`) so every UI component works with a consistent, validated shape (via Zod).
+3. **Error normalization** — Every API route returns `{ data }` on success or `{ error, status }` on failure. Client code never has to guess the error format.
+4. **Token caching** — Auth tokens are cached server-side with TTL, avoiding redundant auth calls on every request.
+
+#### Optimistic Updates (onMutate → onError → onSettled)
+
+Every mutation (index, de-index, delete) applies the change to the TanStack Query cache **before** the API responds.
+
+**Why?**
+
+- Enterprise users expect instant feedback. A 200-500ms round-trip delay after clicking "Index" feels broken.
+- `onMutate` snapshots the previous cache, applies the change, and returns the snapshot. `onError` rolls back to the snapshot and shows a specific toast (e.g., _"Failed to index Report.pdf"_). `onSettled` invalidates queries to sync with server truth.
+- This provides the best UX: instant response with automatic self-healing on failure.
+
+#### Query Key Factory
+
+```ts
+export const resourceKeys = {
+  all: ['resources'] as const,
+  lists: () => [...resourceKeys.all, 'list'] as const,
+  list: (connId: string, folderId?: string) => [...resourceKeys.lists(), connId, folderId] as const,
+};
+```
+
+**Why?**
+
+- Invalidation is precise: `queryClient.invalidateQueries({ queryKey: resourceKeys.lists() })` clears all folder caches without touching unrelated queries.
+- Adding a new query (e.g., resource details) is just a new entry — existing invalidation logic doesn't change (Open/Closed).
+- `as const` gives exact tuple types, catching typos at compile time.
+
+#### Discriminated Unions for Resources
+
+```ts
+type Resource = { type: 'file'; status: ResourceStatus; ... }
+               | { type: 'folder'; status: ResourceStatus; ... };
+```
+
+**Why?** Components can narrow the type via `resource.type === 'folder'` without `as` assertions. TypeScript enforces exhaustive handling — if a third type is added, every `switch` or conditional that doesn't cover it fails at compile time.
+
+#### React.memo + useCallback Strategy
+
+`FileRow` is wrapped in `React.memo`. All handlers passed to it (`onNavigate`, `onDelete`, `onIndex`, etc.) are memoized with `useCallback` in the parent.
+
+**Why?** A file listing can have 50-200+ rows. Without memoization, typing in the search input or toggling a single checkbox would re-render every row. With memo + stable callbacks, only affected rows re-render.
+
+#### Skeleton Dimensions Matching
+
+Skeleton loaders use the exact same grid template, row height, and element sizes as loaded content (e.g., checkbox skeleton is 16×16 with `rounded-[4px]`, status badge skeleton is `h-5 w-16`).
+
+**Why?** CLS (Cumulative Layout Shift) is a measurable user trust signal. Enterprise users in banking/government notice when content "jumps" — it feels unreliable. Matching dimensions means zero layout shift when data loads.
+
+#### Folder-First Sorting (Client-Side)
+
+Sorting is applied client-side with folders always pinned above files, regardless of sort direction.
+
+**Why?** This matches the convention of every file manager (Finder, Explorer, Google Drive). Sorting by "Modified Date descending" should not bury folders between files — users' mental model is "folders are containers, files are content."
 
 ---
 
@@ -105,14 +164,14 @@ npm start
 
 ## Features
 
-- **File Browsing** — Navigate Google Drive hierarchy with breadcrumb navigation
-- **Multi-Selection** — Checkbox selection with Select All and batch actions
-- **Indexing** — Index files/folders into a Knowledge Base with status tracking (indexed / pending / not indexed)
+- **File Browsing** — Navigate Google Drive hierarchy with breadcrumb navigation. Double-click a folder row to enter it (like Google Drive / Finder), or click the folder name directly.
+- **Multi-Selection** — Checkbox selection with Select All, Shift+click range selection, and batch Index / De-index / Delete actions
+- **Indexing** — Index files/folders into a Knowledge Base with real-time status tracking (indexed / pending / not indexed)
 - **De-indexing** — Remove files from KB without deleting from the listing
-- **Deletion** — De-list files with confirmation dialog and optimistic removal
-- **Sorting** — Sort by name or modified date; folders always appear first
-- **Search / Filter** — Client-side filtering with debounced input
-- **Keyboard Navigation** — Enter to open folders, Space to select, Backspace to go up
+- **Deletion** — De-list files with confirmation dialog and optimistic removal animation
+- **Sorting** — Sort by name, modified date, or status; folders always appear first
+- **Search / Filter** — Client-side filtering with highlighted matches
+- **Keyboard Navigation** — Enter to open folders, Tab through rows, full ARIA grid semantics
 
 ---
 
@@ -156,6 +215,96 @@ security ─┘
 - **Type Check** — `tsc --noEmit`
 - **Security** — [Gitleaks](https://github.com/gitleaks/gitleaks) secret scanning + `npm audit`
 - **Build** — `next build` (only runs after all checks pass)
+
+---
+
+## AI-Assisted Development Workflow
+
+The project includes a structured AI agent system (`.github/copilot-instructions.md` + `.github/agents/`) that enforces quality at every stage — not as a novelty, but as executable checklists.
+
+### Copilot Instructions (`.github/copilot-instructions.md`)
+
+A project-wide ruleset automatically loaded into every AI session. Defines the mandated tech stack, architecture boundaries (BFF-only, query key factory, optimistic update protocol), TypeScript strictness rules, performance budget, and coding conventions. Acts as a single source of truth — any AI-generated code that violates these rules is caught immediately.
+
+### Specialized Agents (`.github/agents/`)
+
+Six role-specific agents that simulate a team review process for a solo developer:
+
+| Agent                   | Purpose                                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------------ |
+| `feature-builder`       | Implements features following the types → hooks → components workflow from User Stories    |
+| `code-reviewer`         | Reviews code as a Stack AI tech lead would — security, TypeScript, SOLID, performance      |
+| `architecture-guardian` | Enforces file structure, component boundaries, and import conventions                      |
+| `security-auditor`      | OWASP-based audit: credential exposure, BFF enforcement, token lifecycle, input validation |
+| `ux-reviewer`           | Enterprise polish: CLS, optimistic update UX, empty/error states, WCAG accessibility       |
+| `debugger`              | Structured root-cause analysis with a common-issues lookup table                           |
+
+**Why?** A solo developer doesn't have a team to catch mistakes. These agents are executable checklists — the `security-auditor` runs the same checks a security reviewer would, the `architecture-guardian` catches structural drift before it's committed. Same principle as linting, applied to architecture and security.
+
+---
+
+## Documentation as Architecture
+
+The `docs/` directory is not boilerplate — it's a structured decision-making framework that drove every implementation choice:
+
+| Document                 | Purpose                                                                                                                      |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `REQUIREMENTS.md`        | Functional and non-functional requirements. Each FR/NFR is numbered and traceable to code.                                   |
+| `USER_STORIES.md`        | Epics → User Stories → Acceptance Criteria. Each story has `[x]` checkboxes updated as features land.                        |
+| `ACCEPTANCE_CRITERIA.md` | Three-tier quality bar: Baseline (must pass), Quality (must excel), WOW (differentiators). Keeps the bar visible.            |
+| `API_REFERENCE.md`       | Stack AI API docs — augmented with corrections discovered during testing (see ISS-\* issues below).                          |
+| `issues/`                | 10 documented bugs in the provided API/docs environment, each with ISS-number, severity, reproduction steps, and workaround. |
+
+> **Why this structure?** A take-home project doesn't have a PM, QA team, or sprint board. These docs replace all three — they show _how_ I work, not just _what_ I built. Every feature is traceable from requirement → story → acceptance criteria → committed code.
+
+---
+
+## Testing Strategy
+
+### What exists: API integration tests (Vitest)
+
+```bash
+npx vitest run    # requires .env.local with valid Stack AI credentials
+```
+
+Four test suites hit the **real Stack AI API** and systematically verify every endpoint referenced in the assignment:
+
+| Suite                     | What it tests                                                                |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| `auth.test.ts`            | Supabase token flow — valid creds, wrong password, missing API key           |
+| `connections.test.ts`     | ISS-2 (wrong domain), ISS-3 (/v1/ prefix), ISS-4 (response shape mismatches) |
+| `knowledge-bases.test.ts` | Full KB lifecycle: create → sync → list resources → delete. ISS-5/6/7/8/9/10 |
+| `pagination.test.ts`      | Cursor field nullability, auth boundary enforcement (401 without token)      |
+
+These tests discovered **10 bugs** in the provided API documentation and environment (see `docs/issues/`), including 5 blockers (wrong domain, missing path prefix, incorrect endpoint names). Each bug is documented with a `[DOCS BUG]` assertion that proves the documented behavior fails, and a `[FIX]` assertion that proves the corrected behavior works.
+
+**Why integration tests first?** The assignment's API reference contained significant inaccuracies. Writing integration tests was the fastest way to discover the real API contract — every ISS-\* issue was found by a failing test, not by debugging in the browser. This saved hours of trial-and-error.
+
+### What's not tested: BFF routes
+
+The `app/api/` routes (BFF proxy) are not covered by automated tests. These routes are thin wrappers that:
+
+1. Authenticate via cached server-side token
+2. Forward to Stack AI API
+3. Validate response with Zod
+4. Return normalized `{ data }` or `{ error, status }`
+
+For a production system, BFF route tests would run against a mock Stack AI backend (e.g., MSW) to verify error mapping, caching behavior, and Zod validation. In this project, the BFF logic is simple enough — and the API integration tests verify the real backend — that the ROI of BFF-specific tests is low.
+
+### What would come next (production roadmap)
+
+If this were a production codebase, I'd add testing in this priority order:
+
+| Priority | Layer                      | Framework                | What it covers                                                                                                                                                                                   |
+| -------- | -------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **1**    | **Contract tests**         | Vitest + Zod             | Assert that Stack AI API responses match Zod schemas. Run on CI nightly — catches API changes before they break prod. The Zod schemas already exist; only the CI job is missing.                 |
+| **2**    | **BFF integration tests**  | Vitest + MSW             | Mock the Stack AI API, test BFF routes in isolation: auth caching, error mapping, Zod validation failures, 4xx/5xx forwarding.                                                                   |
+| **3**    | **Unit tests**             | Vitest                   | Pure logic: `useSortAndFilter` (folder-first sort, status rank), `useSelection` (shift-click range, selectable enforcement), `formatDate`, file type icon mapping.                               |
+| **4**    | **Component tests**        | Vitest + Testing Library | Render FileRow, FileList in isolation. Verify checkbox states, keyboard navigation, aria attributes, skeleton-to-content transition.                                                             |
+| **5**    | **E2E / Acceptance tests** | Playwright               | Full user flows based on User Stories: browse → navigate → index → verify status → de-index → delete. Would use MSW or test Stack AI account.                                                    |
+| **6**    | **Visual regression**      | Storybook + Chromatic    | Snapshot every component state (empty, loading, error, populated). Catch unintended styling changes across Shadcn/Tailwind updates. Also serves as a living component catalog for design review. |
+
+> **Why not now?** This is a take-home assignment, not a production codebase. The integration tests exist because they were necessary to understand the real API. Adding unit/component/E2E tests for a solo project with no ongoing maintenance would be engineering theater — effort spent on ceremony rather than signal. The code quality is better demonstrated by the architecture itself: strict TypeScript, Zod boundaries, `React.memo` strategy, and SOLID structure make bugs structurally unlikely.
 
 ---
 
