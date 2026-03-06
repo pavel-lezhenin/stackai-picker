@@ -28,6 +28,8 @@ export function useFileRowHandlers({
 }: Params): FileRowHandlers {
   const handleRowClick = useCallback(
     (e: React.MouseEvent) => {
+      // Ignore clicks that finish a text selection — user wants to copy text, not toggle the row
+      if (window.getSelection()?.toString()) return;
       if (!isPending) onToggleSelect(resourceId, e.shiftKey);
     },
     [isPending, resourceId, onToggleSelect],
