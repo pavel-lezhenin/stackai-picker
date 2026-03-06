@@ -199,8 +199,21 @@ export function useIndexResources() {
       return kb;
     },
 
-    onSuccess: () => {
-      // Force immediate refetch of KB resources instead of waiting for next poll cycle
+    onSuccess: (kb, params) => {
+      // Prime the cache with pending resources immediately so the UI reflects the
+      // new state without a loading flash while waiting for the first poll cycle.
+      const pendingResources: KBResource[] = params.resources.map((r) => ({
+        resource_id: r.resourceId,
+        inode_type: r.type === 'folder' ? ('directory' as const) : ('file' as const),
+        inode_path: { path: r.path },
+        status: 'pending',
+        created_at: null,
+        modified_at: r.modifiedAt,
+      }));
+      queryClient.setQueryData(
+        resourceKeys.kbResourceList(kb.knowledge_base_id, '/'),
+        pendingResources,
+      );
       queryClient.invalidateQueries({ queryKey: resourceKeys.kbResources() });
     },
 

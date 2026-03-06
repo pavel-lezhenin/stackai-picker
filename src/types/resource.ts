@@ -81,6 +81,8 @@ export function mapInodeType(inodeType: 'directory' | 'file'): ResourceType {
 
 /** Transform raw API resource into internal Resource shape */
 export function toResource(raw: ConnectionResource | KBResource): Resource {
+  // The Zod schema accepts `string | null` for status to tolerate undocumented API values;
+  // we cast to ResourceStatus here — any unknown value falls back gracefully in StatusBadge.
   const status = raw.status as ResourceStatus;
   return {
     resourceId: raw.resource_id,

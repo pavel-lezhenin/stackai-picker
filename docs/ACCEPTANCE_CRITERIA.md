@@ -23,13 +23,13 @@ These are the minimum requirements from the task spec. Failing any of these = re
 
 ### Functionality
 
-- [ ] Browse files/folders from Google Drive connection
-- [ ] Navigate into folders and back (breadcrumb)
-- [ ] Delete (de-list) files with confirmation
-- [ ] Index files/folders for Knowledge Base
-- [ ] Show indexing status (indexed / not indexed)
-- [ ] De-index files without deleting from listing
-- [ ] Optimistic updates on all mutations
+- [x] Browse files/folders from Google Drive connection
+- [x] Navigate into folders and back (breadcrumb)
+- [x] Delete (de-list) files with confirmation
+- [x] Index files/folders for Knowledge Base
+- [x] Show indexing status (indexed / not indexed)
+- [x] De-index files without deleting from listing
+- [x] Optimistic updates on all mutations
 
 ### Tech Stack Compliance
 
@@ -41,9 +41,9 @@ These are the minimum requirements from the task spec. Failing any of these = re
 
 ### Deployment
 
-- [ ] Deployed to Vercel with working URL
-- [ ] Environment variables properly configured
-- [ ] No console errors in production
+- [x] Deployed to Vercel with working URL
+- [x] Environment variables properly configured
+- [x] No console errors in production
 
 ---
 
@@ -53,35 +53,35 @@ This is where most candidates stop. Exceeding here gets you to the interview.
 
 ### Code Architecture (SOLID in Practice)
 
-- [ ] **SRP**: Every component has exactly one reason to change. FileRow doesn't know about API calls. Toolbar doesn't know about data shapes.
-- [ ] **OCP**: Adding a new file type (e.g., Google Slides) requires ZERO changes to FileRow — just add an icon mapping.
-- [ ] **LSP**: The Resource type hierarchy works for both files and folders without type-checking hacks.
-- [ ] **ISP**: No component receives props it doesn't use. FileRow gets `name`, `type`, `status` — not the entire Resource.
-- [ ] **DIP**: Components import hooks, never fetch functions. Swapping the API backend requires zero UI changes.
+- [ ] **SRP**: Every component has exactly one reason to change. FileRow doesn't know about API calls. Toolbar doesn't know about data shapes. ⚠️ _FileBrowser 302L, FileList 334L, FileRow 308L — exceed 150-line limit_
+- [x] **OCP**: Adding a new file type (e.g., Google Slides) requires ZERO changes to FileRow — just add an icon mapping.
+- [x] **LSP**: The Resource type hierarchy works for both files and folders without type-checking hacks.
+- [x] **ISP**: No component receives props it doesn't use. FileRow gets `name`, `type`, `status` — not the entire Resource.
+- [x] **DIP**: Components import hooks, never fetch functions. Swapping the API backend requires zero UI changes.
 
 ### TypeScript Excellence
 
 - [x] Zod schemas validate every API boundary (incoming responses, outgoing requests)
 - [x] Discriminated unions for resource types (`type: 'file' | 'folder'`)
 - [x] Const assertions for query key factories
-- [ ] Proper generic typing on TanStack Query hooks
-- [ ] No type assertions (`as`) except justified edge cases with comments
+- [x] Proper generic typing on TanStack Query hooks
+- [ ] No type assertions (`as`) except justified edge cases with comments ⚠️ _`raw.status as ResourceStatus` in resource.ts lacks justification comment_
 
 ### React Patterns
 
-- [ ] `React.memo` on FileRow with proper comparison
-- [ ] Event handlers extracted and memoized via `useCallback` where passed to memoized children
-- [ ] No derived state stored in `useState` (computed via `useMemo` from source data)
-- [ ] Error boundaries at meaningful levels (not just root)
-- [ ] Proper cleanup in all effects
+- [x] `React.memo` on FileRow with proper comparison
+- [x] Event handlers extracted and memoized via `useCallback` where passed to memoized children
+- [x] No derived state stored in `useState` (computed via `useMemo` from source data)
+- [ ] Error boundaries at meaningful levels (not just root) ⚠️ _Only root-level boundary exists_
+- [x] Proper cleanup in all effects
 
 ### Performance
 
-- [ ] Skeleton loaders that match exact dimensions of loaded content (zero CLS)
+- [x] Skeleton loaders that match exact dimensions of loaded content (zero CLS)
 - [x] `staleTime` configured to prevent unnecessary refetches during navigation
-- [ ] Query deduplication — navigating to a previously visited folder shows cached data instantly
-- [ ] Mutation responses used to update cache directly (not just invalidate-and-refetch)
-- [ ] No waterfall requests — parallel data loading where possible
+- [x] Query deduplication — navigating to a previously visited folder shows cached data instantly
+- [ ] Mutation responses used to update cache directly (not just invalidate-and-refetch) ⚠️ _Index mutation invalidates queries instead of direct cache update_
+- [x] No waterfall requests — parallel data loading where possible
 
 ---
 
@@ -91,43 +91,43 @@ These are the details that make an evaluator think "this person writes productio
 
 ### Polish & Micro-interactions
 
-- [ ] Smooth transitions on folder navigation (content fade/slide)
-- [ ] Hover states on all interactive elements with subtle feedback
-- [ ] Status badge transitions (color/icon morphs, not just swap)
+- [x] Smooth transitions on folder navigation (content fade/slide)
+- [x] Hover states on all interactive elements with subtle feedback
+- [x] Status badge transitions (color/icon morphs, not just swap)
 - [ ] Selection checkbox animation (scale + check mark draw)
-- [ ] Toast notifications with contextual messages (not generic "Success")
-- [ ] Confirm dialog uses the file name ("Delete 'Q4 Report.pdf'?")
+- [x] Toast notifications with contextual messages (not generic "Success")
+- [x] Confirm dialog uses the file name ("Delete 'Q4 Report.pdf'?")
 
 ### Accessibility (a11y)
 
-- [ ] Full keyboard navigation: Tab through items, Enter to open folder, Space to toggle selection
-- [ ] `aria-label` on icon-only buttons
-- [ ] `role="row"` and `role="gridcell"` on file list for screen readers
-- [ ] Focus trap in confirmation dialogs
+- [x] Full keyboard navigation: Tab through items, Enter to open folder, Space to toggle selection
+- [x] `aria-label` on icon-only buttons
+- [x] `role="row"` and `role="gridcell"` on file list for screen readers
+- [x] Focus trap in confirmation dialogs
 - [ ] Skip to main content link
-- [ ] Announce status changes to screen readers (`aria-live` regions)
-- [ ] Proper contrast ratios on all text and interactive elements
+- [x] Announce status changes to screen readers (`aria-live` regions)
+- [x] Proper contrast ratios on all text and interactive elements
 
 ### UX Details That Enterprise Users Expect
 
-- [ ] Breadcrumb shows ellipsis for deep paths with dropdown to expand
-- [ ] Column headers are sortable with visual direction indicators (▲▼)
-- [ ] "Select All" checkbox has three states: none/some/all (indeterminate state)
+- [x] Breadcrumb shows ellipsis for deep paths with dropdown to expand
+- [x] Column headers are sortable with visual direction indicators (▲▼)
+- [x] "Select All" checkbox has three states: none/some/all (indeterminate state)
 - [ ] Right-click context menu on files (optional but impressive)
 - [ ] Drag selection across multiple files (rubberband, optional)
-- [ ] Keyboard shortcut: `/` or `Cmd+K` to focus search
+- [x] Keyboard shortcut: `/` or `Cmd+K` to focus search
 - [ ] Empty state illustrations, not just text
-- [ ] File type icons from a consistent icon set (not emoji)
+- [x] File type icons from a consistent icon set (not emoji)
 
 ### Code That Teaches
 
 - [x] Query key factory pattern demonstrates team-scalable caching
-- [ ] Custom hook composition: `useResources` composes `useQuery` + data transformation (field mapping, type narrowing)
+- [x] Custom hook composition: `useResources` composes `useQuery` + data transformation (field mapping, type narrowing)
 - [x] API error types are structured (not just string messages)
-- [ ] API route middleware pattern for auth (reusable across routes)
-- [ ] Optimistic update helper that generalizes across mutations
-- [ ] Consistent response envelope: `{ data } | { error, status }` from all API routes
-- [ ] README explains WHY each pattern was chosen, not just WHAT was built
+- [x] API route middleware pattern for auth (reusable across routes)
+- [x] Optimistic update helper that generalizes across mutations
+- [x] Consistent response envelope: `{ data } | { error, status }` from all API routes
+- [x] README explains WHY each pattern was chosen, not just WHAT was built
 
 ### Build & DX Quality
 

@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 
+import { SEARCH_DEBOUNCE_MS } from '@/lib/constants';
+
 import type { Resource } from '@/types/resource';
 
 export type SortField = 'name' | 'status' | 'modified';
@@ -23,7 +25,7 @@ export function useSortAndFilter(resources: Resource[]) {
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => setDebouncedQuery(value), 200);
+    debounceRef.current = setTimeout(() => setDebouncedQuery(value), SEARCH_DEBOUNCE_MS);
   }, []);
 
   const clearSearch = useCallback(() => {

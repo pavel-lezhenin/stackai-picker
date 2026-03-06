@@ -165,13 +165,14 @@ npm start
 ## Features
 
 - **File Browsing** — Navigate Google Drive hierarchy with breadcrumb navigation. Double-click a folder row to enter it (like Google Drive / Finder), or click the folder name directly.
-- **Multi-Selection** — Checkbox selection with Select All, Shift+click range selection, and batch Index / De-index / Delete actions
-- **Indexing** — Index files/folders into a Knowledge Base with real-time status tracking (indexed / pending / not indexed)
-- **De-indexing** — Remove files from KB without deleting from the listing
-- **Deletion** — De-list files with confirmation dialog and optimistic removal animation
-- **Sorting** — Sort by name, modified date, or status; folders always appear first
-- **Search / Filter** — Client-side filtering with highlighted matches
-- **Keyboard Navigation** — Enter to open folders, Tab through rows, full ARIA grid semantics
+- **Multi-Selection** — Checkbox selection with Select All (indeterminate state), Shift+click range selection, and batch Index / De-index / Delete toolbar. Pending rows are excluded from selection.
+- **Indexing** — Index files/folders into a Knowledge Base with real-time status tracking (indexed / pending / not indexed). Optimistic cache update with rollback on failure.
+- **De-indexing** — Remove files from KB without deleting from the listing. Status reverts instantly on error.
+- **Deletion** — De-list files with confirmation dialog (shows file name), optimistic removal with fade-out animation.
+- **Sorting** — Clickable column headers with direction indicators (▲▼). Sort by name, modified date, or status. Folders always pinned above files.
+- **Search / Filter** — Real-time client-side filtering with match highlighting. Press `/` to focus, `Escape` to clear and blur.
+- **Keyboard Shortcuts** — `Backspace` / `Alt+←` to navigate up a folder. `Enter` to open a folder. `/` to focus search. `Escape` to clear search. `Tab` through rows.
+- **Accessibility** — `role="grid"` / `role="row"` / `role="gridcell"` semantics. `aria-label` on all icon-only buttons. `aria-selected` on rows. Focus-visible rings via Shadcn.
 
 ---
 

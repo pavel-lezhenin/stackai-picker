@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
-import { AlertTriangle, ArrowDown, ArrowUp, FolderOpen, Search, Trash2, X } from 'lucide-react';
+import { AlertTriangle, FolderOpen, Search } from 'lucide-react';
 
+import { ColumnHeaders } from '@/components/file-picker/ColumnHeaders';
 import { FileRow } from '@/components/file-picker/FileRow';
 import { FileListSkeleton } from '@/components/file-picker/FileListSkeleton';
+import { SearchBar } from '@/components/file-picker/SearchBar';
+import { SelectionToolbar } from '@/components/file-picker/SelectionToolbar';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 
 import type { SortConfig, SortField } from '@/hooks/useSortAndFilter';
 import type { Resource } from '@/types/resource';
@@ -24,7 +25,6 @@ type FileListProps = {
   sort: SortConfig;
   searchQuery: string;
   debouncedQuery: string;
-  /** Selection state */
   selected: ReadonlySet<string>;
   allSelected: boolean;
   someSelected: boolean;
@@ -83,32 +83,6 @@ export function FileList({
   canBatchDelete,
   hasSelectable,
 }: FileListProps) {
-  const searchRef = useRef<HTMLInputElement>(null);
-
-  // "/" focuses search, Escape clears and blurs
-  const handleSearchKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Escape') {
-        onClearSearch();
-        searchRef.current?.blur();
-      }
-    },
-    [onClearSearch],
-  );
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      if (e.key === '/') {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
-
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
@@ -140,143 +114,39 @@ export function FileList({
 
   return (
     <div role="grid" aria-label="File list">
-      {/* Selection toolbar — replaces search bar when items selected */}
       {selectionCount > 0 ? (
-        <div className="flex items-center gap-2 px-4 h-10 border-b border-border bg-primary/5 transition-colors">
-          <span className="text-sm font-medium">{selectionCount} selected</span>
-          <div className="flex-1" />
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={onBatchIndex}
-            disabled={!canBatchIndex}
-          >
-            Index
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={onBatchDeindex}
-            disabled={!canBatchDeindex}
-          >
-            De-index
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-xs text-destructive hover:bg-destructive/10"
-            onClick={onBatchDelete}
-            disabled={!canBatchDelete}
-          >
-            <Trash2 className="h-3 w-3 mr-1" />
-            Delete
-          </Button>
-        </div>
+        <SelectionToolbar
+          selectionCount={selectionCount}
+          canBatchIndex={canBatchIndex}
+          canBatchDeindex={canBatchDeindex}
+          canBatchDelete={canBatchDelete}
+          onBatchIndex={onBatchIndex}
+          onBatchDeindex={onBatchDeindex}
+          onBatchDelete={onBatchDelete}
+        />
       ) : (
-        /* Search bar — always visible (persists during loading) */
-        <div className="flex items-center gap-2 px-4 h-10 border-b border-border">
-          <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <input
-            ref={searchRef}
-            type="text"
-            placeholder="Search files… (press / to focus)"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            disabled={isLoading}
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60 disabled:opacity-50"
-            aria-label="Search files"
-          />
-          {searchQuery && (
-            <button
-              onClick={onClearSearch}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Clear search"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
+        <SearchBar
+          searchQuery={searchQuery}
+          isLoading={isLoading}
+          onChange={onSearchChange}
+          onClear={onClearSearch}
+        />
       )}
 
-      {/* Sortable column headers */}
-      <div
-        role="row"
-        className="grid grid-cols-[28px_1fr_100px_120px_136px] items-center gap-4 px-4 py-2 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wide"
-      >
-        <div
-          role="columnheader"
-          className="flex items-center -m-2 p-2 cursor-pointer"
-          onClick={onSelectAll}
-        >
-          <Checkbox
-            checked={allSelected ? true : someSelected ? 'indeterminate' : false}
-            disabled={!hasSelectable}
-            className="pointer-events-none"
-            aria-label={allSelected ? 'Deselect all' : 'Select all'}
-          />
-        </div>
-        <div
-          role="columnheader"
-          className="flex items-center gap-1 cursor-pointer select-none hover:text-foreground transition-colors"
-          onClick={() => onToggleSort('name')}
-          aria-sort={
-            sort.field === 'name' ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'
-          }
-        >
-          Name
-          <SortIndicator field="name" sort={sort} />
-        </div>
-        <div
-          role="columnheader"
-          className="flex items-center gap-1 cursor-pointer select-none hover:text-foreground transition-colors"
-          onClick={() => onToggleSort('status')}
-          aria-sort={
-            sort.field === 'status'
-              ? sort.direction === 'asc'
-                ? 'ascending'
-                : 'descending'
-              : 'none'
-          }
-        >
-          Status
-          <SortIndicator field="status" sort={sort} />
-        </div>
-        <div
-          role="columnheader"
-          className="flex items-center gap-1 cursor-pointer select-none hover:text-foreground transition-colors"
-          onClick={() => onToggleSort('modified')}
-          aria-sort={
-            sort.field === 'modified'
-              ? sort.direction === 'asc'
-                ? 'ascending'
-                : 'descending'
-              : 'none'
-          }
-        >
-          Modified
-          <SortIndicator field="modified" sort={sort} />
-        </div>
-        <div role="columnheader" className="text-right pr-1">
-          {!isLoading && (
-            <span
-              aria-live="polite"
-              className="normal-case tracking-normal font-normal text-muted-foreground/70"
-            >
-              {indexedCount > 0
-                ? `${indexedCount} of ${totalCount} indexed`
-                : `${totalCount} item${totalCount !== 1 ? 's' : ''}`}
-            </span>
-          )}
-        </div>
-      </div>
+      <ColumnHeaders
+        sort={sort}
+        allSelected={allSelected}
+        someSelected={someSelected}
+        hasSelectable={hasSelectable}
+        indexedCount={indexedCount}
+        totalCount={totalCount}
+        isLoading={isLoading}
+        onToggleSort={onToggleSort}
+        onSelectAll={onSelectAll}
+      />
 
-      {/* Loading: skeleton rows (chrome stays above) */}
       {isLoading && <FileListSkeleton />}
 
-      {/* Empty search results */}
       {!isLoading && resources.length === 0 && debouncedQuery && (
         <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
           <Search className="h-10 w-10 text-muted-foreground/50" />
@@ -292,7 +162,6 @@ export function FileList({
         </div>
       )}
 
-      {/* Rows */}
       {!isLoading && resources.length > 0 && (
         <div className="transition-opacity duration-200">
           {resources.map((resource) => (
@@ -304,6 +173,7 @@ export function FileList({
               status={resource.status}
               modifiedAt={resource.modifiedAt}
               path={resource.path}
+              resource={resource}
               searchHighlight={debouncedQuery}
               isDeleting={deletingId === resource.resourceId}
               isPendingDelete={pendingDeleteId === resource.resourceId}
@@ -314,20 +184,10 @@ export function FileList({
               onIndex={onIndex}
               onDeindex={onDeindex}
               onToggleSelect={onToggleSelect}
-              resource={resource}
             />
           ))}
         </div>
       )}
     </div>
-  );
-}
-
-function SortIndicator({ field, sort }: { field: SortField; sort: SortConfig }) {
-  if (sort.field !== field) return null;
-  return sort.direction === 'asc' ? (
-    <ArrowUp className="h-3 w-3" />
-  ) : (
-    <ArrowDown className="h-3 w-3" />
   );
 }
