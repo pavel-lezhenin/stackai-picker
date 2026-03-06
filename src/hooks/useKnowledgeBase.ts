@@ -136,9 +136,12 @@ export function useDeleteKBResource(kbId: string | undefined) {
     },
 
     onMutate: async (resourcePath) => {
-      // Optimistically remove the resource from all KB resource lists
-      return prepareOptimisticUpdate<Resource[]>(queryClient, resourceKeys.kbResources(), (prev) =>
-        prev.filter((r) => r.path !== resourcePath),
+      // Optimistically remove the resource from all KB resource lists.
+      // Cache holds raw KBResource[] (pre-select), so filter on inode_path.path.
+      return prepareOptimisticUpdate<KBResource[]>(
+        queryClient,
+        resourceKeys.kbResources(),
+        (prev) => prev.filter((r) => r.inode_path.path !== resourcePath),
       );
     },
 

@@ -150,6 +150,16 @@ export function useIndexing(connectionId: string | undefined, orgId: string | un
 
   const handleDeindex = useCallback(
     (path: string) => {
+      // Clear optimistic local status so the merge immediately picks up "not indexed"
+      // instead of keeping the stale 'pending'/'indexed' override forever.
+      const name = path.split('/').pop();
+      if (name) {
+        setLocalStatuses((prev) => {
+          const next = new Map(prev);
+          next.delete(name);
+          return next;
+        });
+      }
       deleteMutation.mutate(path);
     },
     [deleteMutation],

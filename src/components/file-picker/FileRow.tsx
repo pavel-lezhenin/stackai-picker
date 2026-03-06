@@ -197,28 +197,30 @@ export const FileRow = memo(function FileRow({
           </Tooltip>
         )}
 
-        {/* Delete (indexed files only — requires kbId via the hook) */}
-        {!isFolder && isIndexed && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={handleDelete}
-                disabled={isPendingDelete}
-                aria-label={`Remove ${name} from listing`}
-              >
-                {isPendingDelete ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                ) : (
-                  <Trash2 className="h-4 w-4 text-muted-foreground" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Remove from listing</TooltipContent>
-          </Tooltip>
-        )}
+        {/* Delete — fixed dimensions prevent CLS when status changes */}
+        <div className="w-8 h-8 shrink-0">
+          {!isFolder && isIndexed && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={handleDelete}
+                  disabled={isPendingDelete}
+                  aria-label={`Remove ${name} from listing`}
+                >
+                  {isPendingDelete ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Remove from listing</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
       </div>
     </div>
   );
