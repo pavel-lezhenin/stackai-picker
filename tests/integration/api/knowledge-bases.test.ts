@@ -16,6 +16,10 @@
  *        DELETE /knowledge_bases/{id}/resources → 404
  *        Actual: use /v1/knowledge-bases (hyphen) for all KB endpoints
  *
+ * ISS-9: Notebook shows POST /knowledge_bases/{id}/resources for file upload (multipart).
+ *        Endpoint is entirely absent from API_REFERENCE.md.
+ *        Expected URL pattern: POST /v1/knowledge-bases/{id}/resources (hyphen + /v1/).
+ *
  * Test lifecycle:
  *   beforeAll → create KB → trigger sync → test list/delete → afterAll (no teardown, KB is ephemeral)
  *
@@ -262,6 +266,82 @@ describe('ISS-7 [FIX] KB resources: all use /v1/knowledge-bases (hyphen)', () =>
       body: JSON.stringify({ resource_path: indexedFilePath }),
     });
     expect(res.ok).toBe(true);
+  });
+});
+
+// ─── KB resources: sub-path listing ──────────────────────────────────────────
+
+describe('KB resources: sub-path listing (notebook section 2.3)', () => {
+  it('resource_path=/ returns 200 with data array (root)', async () => {
+    const res = await fetch(
+      `${ACTUAL_BASE_URL}/v1/knowledge-bases/${knowledgeBaseId}/resources/children?resource_path=/`,
+      { headers: authHeaders },
+    );
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as Record<string, unknown>;
+    expect(Array.isArray(json['data'])).toBe(true);
+  });
+
+  it('[DISCOVERY] non-existent resource_path returns 400 (not 200 with empty array)', async () => {
+    // UNEXPECTED: The API returns 400 for a path that doesn't exist in the KB,
+    // rather than 200 with an empty data array. Client code must handle 4xx on
+    // sub-path navigation, not just check for empty data.
+    const res = await fetch(
+      `${ACTUAL_BASE_URL}/v1/knowledge-bases/${knowledgeBaseId}/resources/children?resource_path=/nonexistent-path-that-does-not-exist`,
+      { headers: authHeaders },
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it('[ISS-10] omitting resource_path causes 500 Internal Server Error (backend bug)', async () => {
+    // BUG: The server crashes with 500 when resource_path is omitted entirely.
+    // This should be a 422 Unprocessable Entity or default to "/".
+    // The BFF route guards against this by defaulting resource_path to "/",
+    // but a direct API call without the param triggers an unhandled server error.
+    const res = await fetch(
+      `${ACTUAL_BASE_URL}/v1/knowledge-bases/${knowledgeBaseId}/resources/children`,
+      { headers: authHeaders },
+    );
+    expect(res.status).toBe(500);
+  });
+});
+
+// ─── ISS-9: Undocumented KB file-upload endpoint ──────────────────────────────
+
+describe('ISS-9 [DOCS BUG] KB file upload: notebook shows POST /knowledge_bases/{id}/resources', () => {
+  it('POST /knowledge_bases/{kbId}/resources (underscore, no /v1/) returns 404', async () => {
+    // Same URL pattern bug as ISS-5/7 — notebook uses underscore path
+    const form = new FormData();
+    form.append('resource_type', 'file');
+    form.append('resource_path', 'test/upload_test.txt');
+    form.append('file', new Blob(['test'], { type: 'text/plain' }), 'upload_test.txt');
+    const res = await fetch(`${ACTUAL_BASE_URL}/knowledge_bases/${knowledgeBaseId}/resources`, {
+      method: 'POST',
+      headers: authHeaders,
+      body: form,
+    });
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('ISS-9 [FIX] KB file upload: POST /v1/knowledge-bases/{id}/resources', () => {
+  it('POST /v1/knowledge-bases/{kbId}/resources with multipart form returns non-404', async () => {
+    // API_REFERENCE.md does not document this endpoint at all.
+    // Notebook shows: POST /knowledge_bases/{id}/resources with multipart form-data.
+    // Discovered correct path follows same hyphen+v1 pattern as all other KB endpoints.
+    const form = new FormData();
+    form.append('resource_type', 'file');
+    form.append('resource_path', 'test/upload_test.txt');
+    form.append('file', new Blob(['test file content'], { type: 'text/plain' }), 'upload_test.txt');
+
+    const res = await fetch(`${ACTUAL_BASE_URL}/v1/knowledge-bases/${knowledgeBaseId}/resources`, {
+      method: 'POST',
+      headers: authHeaders,
+      body: form,
+    });
+    // Must not be 404 — endpoint exists at this path
+    expect(res.status).not.toBe(404);
+    console.info(`ISS-9 upload response: ${res.status}`);
   });
 });
 
