@@ -53,7 +53,7 @@ This is where most candidates stop. Exceeding here gets you to the interview.
 
 ### Code Architecture (SOLID in Practice)
 
-- [ ] **SRP**: Every component has exactly one reason to change. FileRow doesn't know about API calls. Toolbar doesn't know about data shapes. ⚠️ _FileBrowser 302L, FileList 334L, FileRow 308L — exceed 150-line limit_
+- [x] **SRP**: Every component has exactly one reason to change. FileRow doesn't know about API calls. Toolbar doesn't know about data shapes.
 - [x] **OCP**: Adding a new file type (e.g., Google Slides) requires ZERO changes to FileRow — just add an icon mapping.
 - [x] **LSP**: The Resource type hierarchy works for both files and folders without type-checking hacks.
 - [x] **ISP**: No component receives props it doesn't use. FileRow gets `name`, `type`, `status` — not the entire Resource.
@@ -65,14 +65,14 @@ This is where most candidates stop. Exceeding here gets you to the interview.
 - [x] Discriminated unions for resource types (`type: 'file' | 'folder'`)
 - [x] Const assertions for query key factories
 - [x] Proper generic typing on TanStack Query hooks
-- [ ] No type assertions (`as`) except justified edge cases with comments ⚠️ _`raw.status as ResourceStatus` in resource.ts lacks justification comment_
+- [x] No type assertions (`as`) except justified edge cases with comments
 
 ### React Patterns
 
 - [x] `React.memo` on FileRow with proper comparison
 - [x] Event handlers extracted and memoized via `useCallback` where passed to memoized children
 - [x] No derived state stored in `useState` (computed via `useMemo` from source data)
-- [ ] Error boundaries at meaningful levels (not just root) ⚠️ _Only root-level boundary exists_
+- [x] Error boundaries at meaningful levels (not just root)
 - [x] Proper cleanup in all effects
 
 ### Performance
@@ -80,7 +80,7 @@ This is where most candidates stop. Exceeding here gets you to the interview.
 - [x] Skeleton loaders that match exact dimensions of loaded content (zero CLS)
 - [x] `staleTime` configured to prevent unnecessary refetches during navigation
 - [x] Query deduplication — navigating to a previously visited folder shows cached data instantly
-- [ ] Mutation responses used to update cache directly (not just invalidate-and-refetch) ⚠️ _Index mutation invalidates queries instead of direct cache update_
+- [x] Mutation responses used to update cache directly (not just invalidate-and-refetch)
 - [x] No waterfall requests — parallel data loading where possible
 
 ---
@@ -134,7 +134,7 @@ These are the details that make an evaluator think "this person writes productio
 - [x] ESLint config with no warnings (not just no errors)
 - [x] Import order convention (react → next → external → internal → types)
 - [x] Path aliases (`@/components`, `@/hooks`, `@/types`)
-- [ ] Git history with meaningful commits (not one giant commit)
+- [x] Git history with meaningful commits (not one giant commit)
 - [x] `.env.example` file documenting required variables
 
 ---
