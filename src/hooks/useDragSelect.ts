@@ -34,10 +34,9 @@ export function useDragSelect({ onSelect, onClearSelection }: UseDragSelectOptio
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      // Only trigger on left-button drag directly on the grid background.
-      // Clicks on interactive elements (buttons, checkboxes, inputs) bubble
-      // up with a target that is NOT the container itself — skip those.
-      if (e.button !== 0) return;
+      // Only trigger on Alt+left-button drag — this allows normal text
+      // selection and mouse clicks to work without interference.
+      if (e.button !== 0 || !e.altKey) return;
       const target = e.target as HTMLElement;
       // Skip actual interactive controls — dragging from a button/checkbox is never intentional.
       // We do NOT skip [data-slot="context-menu-trigger"] because asChild forwards that attribute

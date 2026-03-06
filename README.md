@@ -23,7 +23,7 @@ A custom Google Drive File Picker built for the [Stack AI](https://www.stack-ai.
 | **Display**          | Contextual file-type icons, status badges, modified date, highlighted search matches          |
 | **Sorting**          | Clickable column headers (Name / Modified), ▲▼ indicators, folders always pinned first        |
 | **Search & Filter**  | Real-time filtering, `/` shortcut, match highlighting, status filter tabs                     |
-| **Selection**        | Checkboxes, Select All (indeterminate), Shift+click range, drag rubber-band select            |
+| **Selection**        | Checkboxes, Select All (indeterminate), Shift+click range, Alt+drag rubber-band lasso         |
 | **Batch Actions**    | Index / De-index / Delete toolbar for selected items                                          |
 | **Indexing**         | Per-row & batch index, optimistic status → Pending, polling to Indexed, folder de-duplication |
 | **De-indexing**      | Per-row & batch, optimistic rollback, file stays in listing                                   |

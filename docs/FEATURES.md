@@ -52,7 +52,7 @@
 - **Per-row checkboxes** — click a checkbox to select an individual file or folder.
 - **Select All** — header checkbox with three states: none / indeterminate (some) / all.
 - **Shift+Click range selection** — selects a contiguous range, matching native file manager behaviour.
-- **Drag (rubber-band) selection** — click-and-drag on the canvas to lasso multiple rows.
+- **Drag (rubber-band) selection** — `Alt`+click-and-drag on the canvas to lasso multiple rows; regular clicks and text selection are unaffected.
 - **Selection toolbar** — slides in when ≥ 1 item is selected; shows selection count and batch action buttons (Index, De-index, Delete).
 - **Pending exclusion** — rows in `pending` state cannot be selected.
 - **Selection cleared on navigation** — moving into a different folder resets the selection.

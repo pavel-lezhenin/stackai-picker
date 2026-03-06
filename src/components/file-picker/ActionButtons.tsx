@@ -55,7 +55,7 @@ export const ActionButtons = memo(function ActionButtons({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 px-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+              className="h-7 px-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
               onClick={handleIndex}
               aria-label={`Index ${name}`}
             >
@@ -87,19 +87,30 @@ export const ActionButtons = memo(function ActionButtons({
               variant="ghost"
               size="sm"
               className={cn(
-                'h-7 px-2 text-xs transition-colors group/indexed',
+                'h-7 px-2 text-xs transition-colors group/indexed cursor-pointer',
                 'text-emerald-600 hover:text-destructive hover:bg-destructive/10',
               )}
               onClick={handleDeindex}
               aria-label={`De-index ${name}`}
             >
-              <span className="flex items-center gap-1 group-hover/indexed:hidden">
-                <Check className="h-3 w-3" />
-                Indexed
-              </span>
-              <span className="hidden items-center gap-1 group-hover/indexed:flex">
-                <X className="h-3 w-3" />
-                De-index
+              {/*
+               * Invisible spacer always occupies the width of "De-index" (the wider label)
+               * so the button never resizes on hover — zero CLS.
+               * Two absolutely-positioned spans cross-fade over it.
+               */}
+              <span className="relative flex items-center gap-1">
+                <span className="invisible flex items-center gap-1" aria-hidden>
+                  <X className="h-3 w-3" />
+                  De-index
+                </span>
+                <span className="absolute inset-0 flex items-center justify-center gap-1 opacity-100 group-hover/indexed:opacity-0 transition-opacity">
+                  <Check className="h-3 w-3" />
+                  Indexed
+                </span>
+                <span className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover/indexed:opacity-100 transition-opacity">
+                  <X className="h-3 w-3" />
+                  De-index
+                </span>
               </span>
             </Button>
           </TooltipTrigger>
