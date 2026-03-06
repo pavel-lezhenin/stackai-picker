@@ -2,30 +2,27 @@
 
 import { useCallback, useMemo } from 'react';
 
-import { useIndexing } from '@/hooks/useIndexing';
-
+import type { useIndexing } from '@/hooks/useIndexing';
 import type { Resource } from '@/types/resource';
 
 type UseBatchActionsParams = {
-  connectionId: string | undefined;
-  orgId: string | undefined;
+  /** Pass the return value of useIndexing — keeps kbId in a single state instance */
+  indexing: ReturnType<typeof useIndexing>;
   selectedResources: Resource[];
   kbResources: Resource[];
   onBatchDelete: (items: { resourceId: string; path: string }[]) => void;
   clearSelection: () => void;
 };
 
-/** Encapsulates all batch (multi-select) action logic and the indexing hook. */
+/** Encapsulates batch (multi-select) action logic. Accepts indexing hook values externally
+ *  so that kbId lives in exactly one place (FileBrowser) and can be shared with useDeleteFlow. */
 export function useBatchActions({
-  connectionId,
-  orgId,
+  indexing,
   selectedResources,
   kbResources,
   onBatchDelete,
   clearSelection,
 }: UseBatchActionsParams) {
-  const indexing = useIndexing(connectionId, orgId);
-
   const canBatchIndex = useMemo(
     () => selectedResources.some((r) => r.status === null || r.status === 'resource'),
     [selectedResources],

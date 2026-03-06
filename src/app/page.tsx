@@ -1,6 +1,7 @@
 'use client';
 
 import { FileBrowser } from '@/components/file-picker/FileBrowser';
+import { FileBrowserErrorBoundary } from '@/components/file-picker/FileBrowserErrorBoundary';
 
 export default function Home() {
   return (
@@ -9,7 +10,9 @@ export default function Home() {
         <h1 className="text-lg font-semibold tracking-tight">Stack AI File Picker</h1>
       </header>
       <main className="flex-1">
-        <FileBrowser />
+        <FileBrowserErrorBoundary>
+          <FileBrowser />
+        </FileBrowserErrorBoundary>
       </main>
     </div>
   );

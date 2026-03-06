@@ -1,11 +1,13 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { BreadcrumbBar } from '@/components/file-picker/BreadcrumbBar';
 import { DeleteConfirmDialog } from '@/components/file-picker/DeleteConfirmDialog';
 import { FileList } from '@/components/file-picker/FileList';
+import { useBatchActions } from '@/hooks/useBatchActions';
 import { useConnection } from '@/hooks/useConnection';
+import { useDeleteFlow } from '@/hooks/useDeleteFlow';
 import { useFolderNavigation } from '@/hooks/useFolderNavigation';
 import { useIndexing } from '@/hooks/useIndexing';
 import { useKBResources } from '@/hooks/useKnowledgeBase';
@@ -15,14 +17,6 @@ import { useResources } from '@/hooks/useResources';
 import { useSelection } from '@/hooks/useSelection';
 import { useSortAndFilter } from '@/hooks/useSortAndFilter';
 import { cn } from '@/lib/utils';
-
-import type { Resource } from '@/types/resource';
-
-type DeleteTarget = {
-  resourceId: string;
-  name: string;
-  path: string;
-};
 
 export function FileBrowser() {
   const {
@@ -46,21 +40,13 @@ export function FileBrowser() {
     refetch,
   } = useResources(connection?.connection_id, currentFolder.id);
 
-  // --- Delete flow (declared early so hiddenResourceIds is available for merge) ---
-  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [hiddenResourceIds, setHiddenResourceIds] = useState<ReadonlySet<string>>(new Set());
+  // --- Indexing (single instance; kbId shared with deleteFlow + batchActions) ---
+  const indexing = useIndexing(connection?.connection_id, org?.org_id);
+  const { kbId, localStatuses } = indexing;
 
-  // --- Indexing ---
-  const {
-    kbId,
-    localStatuses,
-    isIndexing,
-    isDeletePending,
-    handleIndex: rawHandleIndex,
-    handleDeindex,
-    deleteMutation,
-  } = useIndexing(connection?.connection_id, org?.org_id);
+  // --- Delete flow (declared early so hiddenResourceIds is available for merge) ---
+  const deleteFlow = useDeleteFlow(kbId);
+  const { deleteTarget, deletingId, hiddenResourceIds } = deleteFlow;
 
   const { data: kbResources = [] } = useKBResources(kbId, currentFolder.path);
 
@@ -106,53 +92,14 @@ export function FileBrowser() {
     [sortedResources, selected],
   );
 
-  // Determine which batch actions are applicable to the current selection
-  const canBatchIndex = useMemo(
-    () => selectedResources.some((r) => r.status === null || r.status === 'resource'),
-    [selectedResources],
-  );
-  const canBatchDeindex = useMemo(
-    () => selectedResources.some((r) => r.status === 'indexed'),
-    [selectedResources],
-  );
-  const canBatchDelete = useMemo(
-    () => selectedResources.some((r) => r.type !== 'folder' && r.status === 'indexed'),
-    [selectedResources],
-  );
-
-  // Wrap handleIndex to inject kbResources (breaks the circular dep)
-  const handleIndex = useCallback(
-    (resource: Resource) => rawHandleIndex(resource, kbResources),
-    [rawHandleIndex, kbResources],
-  );
-
-  // --- Delete handlers ---
-  const handleDelete = useCallback((resourceId: string, name: string, path: string) => {
-    setDeleteTarget({ resourceId, name, path });
-  }, []);
-
-  const handleDeleteCancel = useCallback(() => {
-    setDeleteTarget(null);
-  }, []);
-
-  const handleDeleteConfirm = useCallback(async () => {
-    if (!deleteTarget) return;
-    const target = deleteTarget;
-    setDeleteTarget(null);
-    setDeletingId(target.resourceId);
-    await new Promise<void>((r) => setTimeout(r, 180));
-    setDeletingId(null);
-    setHiddenResourceIds((prev) => new Set([...prev, target.resourceId]));
-    deleteMutation.mutate(target.path, {
-      onError: () => {
-        setHiddenResourceIds((prev) => {
-          const next = new Set(prev);
-          next.delete(target.resourceId);
-          return next;
-        });
-      },
-    });
-  }, [deleteTarget, deleteMutation]);
+  // --- Batch actions (index / deindex / delete for multi-select) ---
+  const batch = useBatchActions({
+    indexing,
+    selectedResources,
+    kbResources,
+    onBatchDelete: deleteFlow.handleBatchDelete,
+    clearSelection,
+  });
 
   // --- Navigation wrappers that reset the status filter + selection ---
   const handleNavigateWithReset = useCallback(
@@ -186,43 +133,6 @@ export function FileBrowser() {
     refetch();
   }, [refetch]);
 
-  // --- Batch actions ---
-  const handleBatchIndex = useCallback(() => {
-    for (const r of selectedResources) {
-      if (r.status === null || r.status === 'resource') {
-        rawHandleIndex(r, kbResources);
-      }
-    }
-    clearSelection();
-  }, [selectedResources, rawHandleIndex, kbResources, clearSelection]);
-
-  const handleBatchDeindex = useCallback(() => {
-    for (const r of selectedResources) {
-      if (r.status === 'indexed') {
-        handleDeindex(r.path);
-      }
-    }
-    clearSelection();
-  }, [selectedResources, handleDeindex, clearSelection]);
-
-  const handleBatchDelete = useCallback(() => {
-    for (const r of selectedResources) {
-      if (r.type !== 'folder' && r.status === 'indexed') {
-        setHiddenResourceIds((prev) => new Set([...prev, r.resourceId]));
-        deleteMutation.mutate(r.path, {
-          onError: () => {
-            setHiddenResourceIds((prev) => {
-              const next = new Set(prev);
-              next.delete(r.resourceId);
-              return next;
-            });
-          },
-        });
-      }
-    }
-    clearSelection();
-  }, [selectedResources, deleteMutation, clearSelection]);
-
   const isLoading = isConnLoading || isResLoading;
   const isError = isConnError || isResError;
   const errorMessage = connError?.message ?? resError?.message;
@@ -232,8 +142,8 @@ export function FileBrowser() {
       <DeleteConfirmDialog
         open={!!deleteTarget}
         fileName={deleteTarget?.name ?? ''}
-        onConfirm={handleDeleteConfirm}
-        onCancel={handleDeleteCancel}
+        onConfirm={deleteFlow.handleDeleteConfirm}
+        onCancel={deleteFlow.handleDeleteCancel}
       />
 
       <BreadcrumbBar
@@ -266,10 +176,10 @@ export function FileBrowser() {
           isError={isError}
           errorMessage={errorMessage}
           deletingId={deletingId}
-          pendingDeleteId={isDeletePending ? deletingId : null}
+          pendingDeleteId={deleteFlow.isDeletePending ? deletingId : null}
           indexedCount={indexedCount}
           totalCount={resources.length}
-          isIndexing={isIndexing}
+          isIndexing={batch.isIndexing}
           sort={sort}
           searchQuery={searchQuery}
           debouncedQuery={debouncedQuery}
@@ -283,16 +193,16 @@ export function FileBrowser() {
           onToggleSelect={toggleSelect}
           onSelectAll={selectAll}
           onNavigate={handleNavigateWithReset}
-          onDelete={handleDelete}
-          onIndex={handleIndex}
-          onDeindex={handleDeindex}
+          onDelete={deleteFlow.handleDelete}
+          onIndex={batch.handleIndex}
+          onDeindex={batch.handleDeindex}
           onRetry={handleRetry}
-          onBatchIndex={handleBatchIndex}
-          onBatchDeindex={handleBatchDeindex}
-          onBatchDelete={handleBatchDelete}
-          canBatchIndex={canBatchIndex}
-          canBatchDeindex={canBatchDeindex}
-          canBatchDelete={canBatchDelete}
+          onBatchIndex={batch.handleBatchIndex}
+          onBatchDeindex={batch.handleBatchDeindex}
+          onBatchDelete={batch.handleBatchDelete}
+          canBatchIndex={batch.canBatchIndex}
+          canBatchDeindex={batch.canBatchDeindex}
+          canBatchDelete={batch.canBatchDelete}
           hasSelectable={hasSelectable}
         />
       </div>
