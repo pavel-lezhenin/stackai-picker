@@ -15,7 +15,8 @@ export async function POST(request: NextRequest) {
     const body = CreateKBBodySchema.parse(rawBody);
 
     const headers = await getStackAIHeaders();
-    const response = await fetch(stackUrl('/v1/knowledge_bases'), {
+    // Path uses hyphens (/v1/knowledge-bases), not underscores — confirmed via Network tab
+    const response = await fetch(stackUrl('/v1/knowledge-bases'), {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -23,33 +24,44 @@ export async function POST(request: NextRequest) {
         connection_source_ids: body.connection_source_ids,
         indexing_params: {
           ocr: false,
-          unstructured: true,
           embedding_params: {
-            embedding_model: 'text-embedding-ada-002',
+            embedding_model: 'openai.text-embedding-3-large',
             api_key: null,
           },
           chunker_params: {
-            chunk_size: 1500,
-            chunk_overlap: 500,
-            chunker: 'sentence',
+            chunk_size: 2500,
+            chunk_overlap: 100,
+            chunker_type: 'sentence',
           },
         },
         org_level_role: null,
-        cron_job_id: null,
       }),
     });
 
     if (!response.ok) {
       const text = await response.text();
       console.error(`[BFF /knowledge-bases POST] upstream ${response.status}:`, text);
+      const detail = text.slice(0, 300).replace(/\s+/g, ' ').trim();
       return NextResponse.json(
-        { error: `Failed to create knowledge base (${response.status})`, status: response.status },
+        {
+          error: `Failed to create knowledge base (${response.status})${detail ? `: ${detail}` : ''}`,
+          status: response.status,
+        },
         { status: response.status },
       );
     }
 
     const json: unknown = await response.json();
-    const kb = KnowledgeBaseSchema.parse(json);
+    // API may return the KB directly or nested in { data: {...} }
+    const unwrapped =
+      json !== null &&
+      typeof json === 'object' &&
+      'data' in json &&
+      json.data !== null &&
+      typeof json.data === 'object'
+        ? json.data
+        : json;
+    const kb = KnowledgeBaseSchema.parse(unwrapped);
 
     return NextResponse.json({ data: kb });
   } catch (error) {

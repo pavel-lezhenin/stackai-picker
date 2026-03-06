@@ -9,7 +9,10 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * Trigger KB sync. Requires org_id as query param.
  * The org_id is fetched client-side from /api/organizations/me and forwarded here.
  */
-export async function GET(request: NextRequest, { params }: { params: Promise<{ kbId: string }> }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ kbId: string }> },
+) {
   try {
     const { kbId } = await params;
     const orgId = request.nextUrl.searchParams.get('org_id');
@@ -30,9 +33,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const headers = await getStackAIHeaders();
-    const response = await fetch(stackUrl(`/v1/knowledge_bases/sync/trigger/${kbId}/${orgId}`), {
-      headers,
-    });
+    // Correct endpoint: POST /v1/knowledge-bases/{kbId}/sync?org_id={orgId}
+    const syncUrl = new URL(stackUrl(`/v1/knowledge-bases/${kbId}/sync`));
+    syncUrl.searchParams.set('org_id', orgId);
+    const response = await fetch(syncUrl.toString(), { method: 'POST', headers });
 
     if (!response.ok) {
       const text = await response.text();
@@ -49,7 +53,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         );
       }
 
-      console.error(`[BFF /knowledge-bases/.../sync] upstream ${response.status}:`, text);
+      console.error(`[BFF sync] upstream ${response.status}:`, text.slice(0, 500));
       return NextResponse.json(
         { error: `Failed to trigger sync (${response.status})`, status: response.status },
         { status: response.status },

@@ -221,17 +221,17 @@
 
 **Acceptance Criteria:**
 
-- [ ] Per-row "Index" action button (or toggle)
-- [ ] Status changes optimistically to "Indexed" with green badge
-- [ ] Success toast: "Successfully indexed '[filename]'"
-- [ ] Error: status reverts, error toast with specific message
+- [x] Per-row "Index" action button (or toggle)
+- [x] Status changes optimistically to "Pending" badge while indexing
+- [x] Success toast: "Started indexing '[filename]'"
+- [x] Error: status reverts, error toast with specific message
 - [ ] Batch indexing: select multiple → "Index Selected" toolbar button
 
 **WOW Detail:**
 
-- [ ] Status badge animates on transition (not indexed → pending → indexed)
-- [ ] Pending state shows a subtle spinner/pulse on the badge
-- [ ] Index button transforms to "Indexed ✓" preventing accidental double-tap
+- [x] Status badge animates on transition (not indexed → pending → indexed)
+- [x] Pending state shows a subtle spinner/pulse on the badge
+- [x] Index button transforms to "Indexed ✓" preventing accidental double-tap
 
 ---
 
@@ -243,16 +243,16 @@
 
 **Acceptance Criteria:**
 
-- [ ] Status badge on each row: green "Indexed" / gray "Not Indexed"
-- [ ] Badge has consistent width (no layout shift on status change)
-- [ ] Toolbar shows summary: "X of Y files indexed"
-- [ ] Status is fetched from API and reflects server truth
+- [x] Status badge on each row: green "Indexed" / gray "Not Indexed"
+- [x] Badge has consistent width (no layout shift on status change)
+- [x] Toolbar shows summary: "X of Y files indexed"
+- [x] Status is fetched from API and reflects server truth
 
 **WOW Detail:**
 
-- [ ] Badge uses filled/outline variant for clear visual distinction
-- [ ] Icon inside badge (check for indexed, minus for not indexed)
-- [ ] Filter option: "Show indexed only" / "Show not indexed only"
+- [x] Badge uses filled/outline variant for clear visual distinction
+- [x] Icon inside badge (check for indexed, minus for not indexed)
+- [x] Filter option: "Show indexed only" / "Show not indexed only"
 
 ---
 
@@ -264,16 +264,16 @@
 
 **Acceptance Criteria:**
 
-- [ ] Indexed files show a "De-index" action (dropdown or direct button)
-- [ ] Optimistic: status immediately changes to "Not Indexed"
-- [ ] File remains in the listing
-- [ ] On error: status reverts to "Indexed", error toast
+- [x] Indexed files show a "De-index" action (dropdown or direct button)
+- [x] Optimistic: status immediately changes to "Not Indexed"
+- [x] File remains in the listing
+- [x] On error: status reverts to "Indexed", error toast
 - [ ] Batch de-index supported when multiple indexed items selected
 
 **WOW Detail:**
 
 - [ ] Confirmation for batch de-index: "Remove X files from Knowledge Base?"
-- [ ] Status transition animates smoothly (green → gray)
+- [x] Status transition animates smoothly (green → gray)
 
 ---
 
@@ -287,17 +287,17 @@
 
 **Acceptance Criteria:**
 
-- [ ] Column headers ("Name", "Modified") are clickable for sorting
-- [ ] Sort direction indicators: ▲ ascending, ▼ descending
-- [ ] Sort options: Name A-Z, Name Z-A, Date Newest, Date Oldest
-- [ ] Folders always grouped before files regardless of sort order
-- [ ] Sort is client-side (no API call needed — instant)
-- [ ] Sort preference persists within session (not reset on folder navigation)
+- [x] Column headers ("Name", "Modified") are clickable for sorting
+- [x] Sort direction indicators: ▲ ascending, ▼ descending
+- [x] Sort options: Name A-Z, Name Z-A, Date Newest, Date Oldest
+- [x] Folders always grouped before files regardless of sort order
+- [x] Sort is client-side (no API call needed — instant)
+- [x] Sort preference persists within session (not reset on folder navigation)
 
 **WOW Detail:**
 
-- [ ] Default sort: folders first, then files alphabetically
-- [ ] Active sort column highlighted
+- [x] Default sort: folders first, then files alphabetically
+- [x] Active sort column highlighted
 - [ ] No layout shift on sort change (items animate into new positions if feasible)
 
 ---
@@ -310,19 +310,19 @@
 
 **Acceptance Criteria:**
 
-- [ ] Search input in toolbar area
-- [ ] Client-side filtering as user types (debounced 300ms)
-- [ ] "No results matching '[query]'" empty state
-- [ ] Clear button (X icon) to reset filter
-- [ ] Filter resets when navigating to a different folder
-- [ ] Results update smoothly without layout shift
+- [x] Search input in toolbar area
+- [x] Client-side filtering as user types (debounced 300ms)
+- [x] "No results matching '[query]'" empty state
+- [x] Clear button (X icon) to reset filter
+- [x] Filter resets when navigating to a different folder
+- [x] Results update smoothly without layout shift
 
 **WOW Detail:**
 
-- [ ] Keyboard shortcut: `Cmd+K` or `/` focuses search input
-- [ ] Search input has `magnifying glass` icon prefix
-- [ ] Matching text highlighted in results (bold the matching substring)
-- [ ] Escape key clears search and returns focus to file list
+- [x] Keyboard shortcut: `Cmd+K` or `/` focuses search input
+- [x] Search input has `magnifying glass` icon prefix
+- [x] Matching text highlighted in results (bold the matching substring)
+- [x] Escape key clears search and returns focus to file list
 
 ---
 

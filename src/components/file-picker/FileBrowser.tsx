@@ -1,43 +1,27 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { useCallback, useState } from 'react';
 
+import { BreadcrumbBar } from '@/components/file-picker/BreadcrumbBar';
 import { DeleteConfirmDialog } from '@/components/file-picker/DeleteConfirmDialog';
 import { FileList } from '@/components/file-picker/FileList';
-import { Button } from '@/components/ui/button';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { useConnection } from '@/hooks/useConnection';
-import { useDeleteKBResource } from '@/hooks/useKnowledgeBase';
+import { useFolderNavigation } from '@/hooks/useFolderNavigation';
+import { useIndexing } from '@/hooks/useIndexing';
+import { useKBResources } from '@/hooks/useKnowledgeBase';
+import { useOrganization } from '@/hooks/useOrganization';
+import { useResourceMerge } from '@/hooks/useResourceMerge';
 import { useResources } from '@/hooks/useResources';
+import { useSortAndFilter } from '@/hooks/useSortAndFilter';
 import { cn } from '@/lib/utils';
 
-type BreadcrumbEntry = {
-  id: string | undefined;
-  name: string;
-};
+import type { Resource } from '@/types/resource';
 
 type DeleteTarget = {
   resourceId: string;
   name: string;
   path: string;
 };
-
-// Show at most this many segments before collapsing middle ones into "..."
-const MAX_VISIBLE_CRUMBS = 4;
 
 export function FileBrowser() {
   const {
@@ -46,84 +30,61 @@ export function FileBrowser() {
     isError: isConnError,
     error: connError,
   } = useConnection();
-  const [folderStack, setFolderStack] = useState<BreadcrumbEntry[]>([
-    { id: undefined, name: 'Root' },
-  ]);
-  // Tracks opacity for fade transition on folder navigation
-  const [visible, setVisible] = useState(true);
-  const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { data: org } = useOrganization();
 
-  // Delete flow state
-  // kbId is undefined until a KB is created (Epic 5 wires this in)
-  const [kbId] = useState<string | undefined>(undefined);
-  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const deleteMutation = useDeleteKBResource(kbId);
+  // --- Navigation ---
+  const { folderStack, currentFolder, handleNavigate, handleBreadcrumbClick, handleBack } =
+    useFolderNavigation();
 
-  const currentFolder = folderStack[folderStack.length - 1];
+  // --- Data fetching ---
   const {
-    data: resources = [],
+    data: connectionResources = [],
     isLoading: isResLoading,
     isError: isResError,
     error: resError,
     refetch,
   } = useResources(connection?.connection_id, currentFolder.id);
 
-  const isLoading = isConnLoading || isResLoading;
-  const isError = isConnError || isResError;
-  const errorMessage = connError?.message ?? resError?.message;
+  // --- Delete flow (declared early so hiddenResourceIds is available for merge) ---
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [hiddenResourceIds, setHiddenResourceIds] = useState<ReadonlySet<string>>(new Set());
 
-  /** Fade out → update stack → fade in */
-  const navigateTo = useCallback((updater: (prev: BreadcrumbEntry[]) => BreadcrumbEntry[]) => {
-    if (fadeTimer.current) clearTimeout(fadeTimer.current);
-    setVisible(false);
-    fadeTimer.current = setTimeout(() => {
-      setFolderStack(updater);
-      setVisible(true);
-    }, 150);
-  }, []);
+  // --- Indexing ---
+  const {
+    kbId,
+    localStatuses,
+    isIndexing,
+    isDeletePending,
+    handleIndex: rawHandleIndex,
+    handleDeindex,
+    deleteMutation,
+  } = useIndexing(connection?.connection_id, org?.org_id);
 
-  const handleNavigate = useCallback(
-    (resourceId: string, name: string) => {
-      navigateTo((prev) => [...prev, { id: resourceId, name }]);
-    },
-    [navigateTo],
+  const { data: kbResources = [] } = useKBResources(kbId, currentFolder.path);
+
+  // --- Merge connection resources with KB status + apply filter ---
+  const { filteredResources, resources, indexedCount, statusFilter, setStatusFilter, resetFilter } =
+    useResourceMerge(connectionResources, kbResources, hiddenResourceIds, localStatuses);
+
+  // --- Sort + Search (client-side, operates on filteredResources) ---
+  const {
+    sortedResources,
+    sort,
+    toggleSort,
+    searchQuery,
+    debouncedQuery,
+    handleSearchChange,
+    clearSearch,
+  } = useSortAndFilter(filteredResources);
+
+  // Wrap handleIndex to inject kbResources (breaks the circular dep)
+  const handleIndex = useCallback(
+    (resource: Resource) => rawHandleIndex(resource, kbResources),
+    [rawHandleIndex, kbResources],
   );
 
-  const handleBreadcrumbClick = useCallback(
-    (index: number) => {
-      navigateTo((prev) => prev.slice(0, index + 1));
-    },
-    [navigateTo],
-  );
-
-  const handleBack = useCallback(() => {
-    if (folderStack.length <= 1) return;
-    navigateTo((prev) => prev.slice(0, -1));
-  }, [folderStack.length, navigateTo]);
-
-  // Keyboard: Backspace or Alt+← navigates up
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      if (e.key === 'Backspace' || (e.key === 'ArrowLeft' && e.altKey)) {
-        e.preventDefault();
-        handleBack();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [handleBack]);
-
-  // Clean up fade timer on unmount
-  useEffect(
-    () => () => {
-      if (fadeTimer.current) clearTimeout(fadeTimer.current);
-    },
-    [],
-  );
-
+  // --- Delete handlers ---
   const handleDelete = useCallback((resourceId: string, name: string, path: string) => {
     setDeleteTarget({ resourceId, name, path });
   }, []);
@@ -137,28 +98,52 @@ export function FileBrowser() {
     const target = deleteTarget;
     setDeleteTarget(null);
     setDeletingId(target.resourceId);
-    // Brief pause for exit animation before optimistic cache removal
     await new Promise<void>((r) => setTimeout(r, 180));
+    setDeletingId(null);
+    setHiddenResourceIds((prev) => new Set([...prev, target.resourceId]));
     deleteMutation.mutate(target.path, {
-      onSettled: () => setDeletingId(null),
+      onError: () => {
+        setHiddenResourceIds((prev) => {
+          const next = new Set(prev);
+          next.delete(target.resourceId);
+          return next;
+        });
+      },
     });
   }, [deleteTarget, deleteMutation]);
+
+  // --- Navigation wrappers that reset the status filter ---
+  const handleNavigateWithReset = useCallback(
+    (resourceId: string, name: string, folderPath: string) => {
+      resetFilter();
+      clearSearch();
+      handleNavigate(resourceId, name, folderPath);
+    },
+    [handleNavigate, resetFilter, clearSearch],
+  );
+
+  const handleBreadcrumbClickWithReset = useCallback(
+    (index: number) => {
+      resetFilter();
+      clearSearch();
+      handleBreadcrumbClick(index);
+    },
+    [handleBreadcrumbClick, resetFilter, clearSearch],
+  );
+
+  const handleBackWithReset = useCallback(() => {
+    resetFilter();
+    clearSearch();
+    handleBack();
+  }, [handleBack, resetFilter, clearSearch]);
 
   const handleRetry = useCallback(() => {
     refetch();
   }, [refetch]);
 
-  // Build breadcrumb segments — collapse middle items when stack is deep
-  const breadcrumbSegments = (() => {
-    if (folderStack.length <= MAX_VISIBLE_CRUMBS) return folderStack;
-    // Keep first, last two, collapse the rest
-    const collapsed = folderStack.slice(1, folderStack.length - 2);
-    return [
-      folderStack[0],
-      { id: '__overflow__', name: '...', overflow: collapsed },
-      ...folderStack.slice(folderStack.length - 2),
-    ] as (BreadcrumbEntry & { overflow?: BreadcrumbEntry[] })[];
-  })();
+  const isLoading = isConnLoading || isResLoading;
+  const isError = isConnError || isResError;
+  const errorMessage = connError?.message ?? resError?.message;
 
   return (
     <div className="flex flex-col h-full">
@@ -168,86 +153,53 @@ export function FileBrowser() {
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
       />
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          disabled={folderStack.length <= 1}
-          onClick={handleBack}
-          aria-label="Go back"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
 
-        <Breadcrumb>
-          <BreadcrumbList>
-            {breadcrumbSegments.map((entry, index) => {
-              const isLast = index === breadcrumbSegments.length - 1;
-              const isOverflow = entry.id === '__overflow__';
-              const overflowEntry = entry as BreadcrumbEntry & { overflow?: BreadcrumbEntry[] };
-              // Find the real index in folderStack for non-overflow items
-              const stackIndex = folderStack.findIndex((f) => f.id === entry.id);
+      <BreadcrumbBar
+        folderStack={folderStack}
+        onBack={handleBackWithReset}
+        onBreadcrumbClick={handleBreadcrumbClickWithReset}
+      />
 
-              return (
-                <span key={entry.id ?? 'root'} className="contents">
-                  {index > 0 && <BreadcrumbSeparator />}
-                  <BreadcrumbItem>
-                    {isLast ? (
-                      <BreadcrumbPage>{entry.name}</BreadcrumbPage>
-                    ) : isOverflow ? (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <BreadcrumbLink className="cursor-pointer select-none">
-                            &hellip;
-                          </BreadcrumbLink>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          {overflowEntry.overflow?.map((o) => {
-                            const oIndex = folderStack.findIndex((f) => f.id === o.id);
-                            return (
-                              <DropdownMenuItem
-                                key={o.id}
-                                onClick={() => handleBreadcrumbClick(oIndex)}
-                              >
-                                {o.name}
-                              </DropdownMenuItem>
-                            );
-                          })}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    ) : (
-                      <BreadcrumbLink
-                        className="cursor-pointer hover:underline"
-                        onClick={() => handleBreadcrumbClick(stackIndex)}
-                      >
-                        {entry.name}
-                      </BreadcrumbLink>
-                    )}
-                  </BreadcrumbItem>
-                </span>
-              );
-            })}
-          </BreadcrumbList>
-        </Breadcrumb>
-      </div>
-
-      {/* File List — opacity fade on folder navigation */}
-      <div
-        className={cn(
-          'flex-1 overflow-auto transition-opacity duration-150 ease-out',
-          visible ? 'opacity-100' : 'opacity-0',
+      <div className="flex-1 overflow-auto">
+        {!isConnLoading && !isError && (resources.length > 0 || isResLoading) && (
+          <div className="flex items-center gap-1 px-4 py-2 border-b border-border">
+            <span className="text-xs text-muted-foreground mr-1">Show:</span>
+            {(['all', 'indexed', 'not-indexed'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setStatusFilter(f)}
+                className={cn(
+                  'text-xs px-2.5 py-0.5 rounded-full transition-colors',
+                  statusFilter === f
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'text-muted-foreground hover:bg-muted',
+                )}
+              >
+                {f === 'all' ? 'All' : f === 'indexed' ? 'Indexed' : 'Not Indexed'}
+              </button>
+            ))}
+          </div>
         )}
-      >
         <FileList
-          resources={resources}
+          resources={sortedResources}
           isLoading={isLoading}
           isError={isError}
           errorMessage={errorMessage}
           deletingId={deletingId}
-          pendingDeleteId={deleteMutation.isPending ? deletingId : null}
-          onNavigate={handleNavigate}
+          pendingDeleteId={isDeletePending ? deletingId : null}
+          indexedCount={indexedCount}
+          totalCount={resources.length}
+          isIndexing={isIndexing}
+          sort={sort}
+          searchQuery={searchQuery}
+          debouncedQuery={debouncedQuery}
+          onToggleSort={toggleSort}
+          onSearchChange={handleSearchChange}
+          onClearSearch={clearSearch}
+          onNavigate={handleNavigateWithReset}
           onDelete={handleDelete}
+          onIndex={handleIndex}
+          onDeindex={handleDeindex}
           onRetry={handleRetry}
         />
       </div>
