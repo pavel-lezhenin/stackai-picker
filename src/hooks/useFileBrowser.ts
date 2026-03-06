@@ -27,11 +27,9 @@ export function useFileBrowser() {
   } = useConnection();
   const { data: org } = useOrganization();
 
-  // --- Navigation ---
   const { folderStack, currentFolder, handleNavigate, handleBreadcrumbClick, handleBack } =
     useFolderNavigation();
 
-  // --- Data fetching ---
   const {
     data: connectionResources = [],
     isLoading: isResLoading,
@@ -40,21 +38,17 @@ export function useFileBrowser() {
     refetch,
   } = useResources(connection?.connection_id, currentFolder.id);
 
-  // --- Indexing (single instance; kbId shared with deleteFlow + batchActions) ---
   const indexing = useIndexing(connection?.connection_id, org?.org_id);
   const { kbId, localStatuses } = indexing;
 
-  // --- Delete flow (declared early so hiddenResourceIds is available for merge) ---
   const deleteFlow = useDeleteFlow(kbId);
   const { deletingId, hiddenResourceIds } = deleteFlow;
 
   const { data: kbResources = [] } = useKBResources(kbId, currentFolder.path);
 
-  // --- Merge connection resources with KB status + apply filter ---
   const { filteredResources, resources, indexedCount, statusFilter, setStatusFilter, resetFilter } =
     useResourceMerge(connectionResources, kbResources, hiddenResourceIds, localStatuses);
 
-  // --- Sort + Search (client-side, operates on filteredResources) ---
   const {
     sortedResources,
     sort,
@@ -65,7 +59,6 @@ export function useFileBrowser() {
     clearSearch,
   } = useSortAndFilter(filteredResources);
 
-  // --- Selection (operates on the visible sorted resources) ---
   const sortedResourceIds = useMemo(
     () => sortedResources.map((r) => r.resourceId),
     [sortedResources],
@@ -91,7 +84,6 @@ export function useFileBrowser() {
     [sortedResources, selected],
   );
 
-  // --- Batch actions ---
   const batch = useBatchActions({
     indexing,
     selectedResources,
@@ -100,7 +92,6 @@ export function useFileBrowser() {
     clearSelection,
   });
 
-  // --- Navigation wrappers that reset filter + selection ---
   const handleNavigateWithReset = useCallback(
     (resourceId: string, name: string, folderPath: string) => {
       resetFilter();
