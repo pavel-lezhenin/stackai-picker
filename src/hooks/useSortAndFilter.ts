@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 
 import type { Resource } from '@/types/resource';
 
-export type SortField = 'name' | 'modified';
+export type SortField = 'name' | 'status' | 'modified';
 export type SortDirection = 'asc' | 'desc';
 export type SortConfig = { field: SortField; direction: SortDirection };
 
@@ -56,6 +56,13 @@ export function useSortAndFilter(resources: Resource[]) {
 
       if (sort.field === 'name') {
         return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) * dir;
+      }
+
+      if (sort.field === 'status') {
+        // Order: not-indexed (null/resource) → pending → indexed
+        const rank = (r: Resource) => (r.status === 'indexed' ? 2 : r.status === 'pending' ? 1 : 0);
+        const diff = rank(a) - rank(b);
+        return (diff || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })) * dir;
       }
 
       // Modified date — nulls go last

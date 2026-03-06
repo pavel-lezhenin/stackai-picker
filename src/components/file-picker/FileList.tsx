@@ -229,7 +229,21 @@ export function FileList({
           Name
           <SortIndicator field="name" sort={sort} />
         </div>
-        <div role="columnheader">Status</div>
+        <div
+          role="columnheader"
+          className="flex items-center gap-1 cursor-pointer select-none hover:text-foreground transition-colors"
+          onClick={() => onToggleSort('status')}
+          aria-sort={
+            sort.field === 'status'
+              ? sort.direction === 'asc'
+                ? 'ascending'
+                : 'descending'
+              : 'none'
+          }
+        >
+          Status
+          <SortIndicator field="status" sort={sort} />
+        </div>
         <div
           role="columnheader"
           className="flex items-center gap-1 cursor-pointer select-none hover:text-foreground transition-colors"
