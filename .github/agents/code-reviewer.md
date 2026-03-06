@@ -20,6 +20,17 @@ Before reviewing, read these files for the quality bar:
 
 ## Review Priorities (in order)
 
+### 0. Discover Actual Files First
+
+**Always start here before any other check.**
+
+Run `list_dir` recursively on `src/` to get the real file list. Do NOT assume file names
+from documentation examples or your training data — those are illustrative.
+Work only with files you can verify actually exist. If a file you expect isn't present,
+note it and move on — never fabricate findings for files that don't exist.
+When reading a file to check a specific line, use the actual line number returned,
+not an estimated or inferred one.
+
 ### 1. Security (Instant Reject if Failed)
 
 - API keys/tokens NEVER in client code
