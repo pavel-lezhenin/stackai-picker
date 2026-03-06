@@ -101,6 +101,8 @@ not an estimated or inferred one.
 
 ## Output Format
 
+**IMPORTANT — response length**: Write the full report to `docs/audits/code-review-<YYYY-MM-DD>.md` using `create_file`. Then return ONLY a short summary to the caller (5 lines max): file path written, finding counts by severity, and the top 3 critical/warning findings. Do NOT repeat the full report in your response message.
+
 Write results to `docs/audits/code-review-<YYYY-MM-DD>.md`.
 
 Group findings by severity. Each finding includes file, line, issue, and fix:

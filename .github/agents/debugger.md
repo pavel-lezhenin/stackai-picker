@@ -95,4 +95,6 @@ After every fix, verify:
 
 ## Output
 
-Write results to `docs/audits/debug-<YYYY-MM-DD>.md`. Include: bug description, root cause, minimal fix applied, files changed, and verification result (`get_errors` output).
+Write results to `docs/audits/debug-<YYYY-MM-DD>.md` using `create_file`. Include: bug description, root cause, minimal fix applied, files changed, and verification result (`get_errors` output).
+
+**IMPORTANT — response length**: After writing the file, return ONLY a short summary to the caller (5 lines max): file path written, root cause in one sentence, files changed, and `get_errors` result. Do NOT repeat the full report in your response message.

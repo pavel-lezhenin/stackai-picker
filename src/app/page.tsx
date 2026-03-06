@@ -1,5 +1,3 @@
-'use client';
-
 import { FileBrowser } from '@/components/file-picker/FileBrowser';
 import { FileBrowserErrorBoundary } from '@/components/file-picker/FileBrowserErrorBoundary';
 

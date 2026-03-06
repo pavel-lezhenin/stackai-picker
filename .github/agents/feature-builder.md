@@ -230,4 +230,6 @@ type ApiResponse<T> =
 
 ## Output
 
-Write a summary to `docs/audits/feature-<YYYY-MM-DD>.md`. Include: feature implemented, files created/modified, patterns used, and quality checklist results (`get_errors` — must be zero).
+Write a summary to `docs/audits/feature-<YYYY-MM-DD>.md` using `create_file`. Include: feature implemented, files created/modified, patterns used, and quality checklist results (`get_errors` — must be zero).
+
+**IMPORTANT — response length**: After writing the file, return ONLY a short summary to the caller (5 lines max): file path written, files changed, and `get_errors` result. Do NOT repeat the full report in your response message.

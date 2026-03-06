@@ -73,6 +73,8 @@ A single security flaw in a take-home task = instant rejection.
 
 ## Output Format
 
+**IMPORTANT — response length**: Write the full report to `docs/audits/security-<YYYY-MM-DD>.md` using `create_file`. Then return ONLY a short summary to the caller (5 lines max): file path written, critical/warning/pass counts, and any critical findings. Do NOT repeat the full report in your response message.
+
 Write results to `docs/audits/security-<YYYY-MM-DD>.md`.
 
 ```
