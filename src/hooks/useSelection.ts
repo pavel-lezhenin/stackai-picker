@@ -1,18 +1,24 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 /**
  * Manages multi-selection state for a list of resources.
  * Supports toggle, select-all, range selection via Shift+click, and clear.
+ * @param resourceIds - all visible resource IDs (for ordering in Shift+click)
+ * @param selectableIds - subset that can actually be selected (e.g. excludes pending)
  */
-export function useSelection(resourceIds: readonly string[]) {
+export function useSelection(resourceIds: readonly string[], selectableIds: readonly string[]) {
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   /** Tracks the last toggled row for Shift+click range selection */
   const lastToggledIndex = useRef<number | null>(null);
 
+  const selectableSet = useMemo(() => new Set(selectableIds), [selectableIds]);
+
   const toggle = useCallback(
     (id: string, shiftKey = false) => {
+      if (!selectableSet.has(id)) return;
+
       const currentIndex = resourceIds.indexOf(id);
 
       // Shift+click range selection
@@ -24,7 +30,7 @@ export function useSelection(resourceIds: readonly string[]) {
         setSelected((prev) => {
           const next = new Set(prev);
           for (const rid of rangeIds) {
-            next.add(rid);
+            if (selectableSet.has(rid)) next.add(rid);
           }
           return next;
         });
@@ -43,25 +49,26 @@ export function useSelection(resourceIds: readonly string[]) {
       });
       lastToggledIndex.current = currentIndex !== -1 ? currentIndex : null;
     },
-    [resourceIds],
+    [resourceIds, selectableSet],
   );
 
   const selectAll = useCallback(() => {
-    if (selected.size === resourceIds.length && resourceIds.length > 0) {
+    if (selected.size === selectableIds.length && selectableIds.length > 0) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(resourceIds));
+      setSelected(new Set(selectableIds));
     }
     lastToggledIndex.current = null;
-  }, [resourceIds, selected.size]);
+  }, [selectableIds, selected.size]);
 
   const clear = useCallback(() => {
     setSelected(new Set());
     lastToggledIndex.current = null;
   }, []);
 
-  const allSelected = resourceIds.length > 0 && selected.size === resourceIds.length;
+  const allSelected = selectableIds.length > 0 && selected.size === selectableIds.length;
   const someSelected = selected.size > 0 && !allSelected;
+  const hasSelectable = selectableIds.length > 0;
 
   return {
     selected,
@@ -70,6 +77,7 @@ export function useSelection(resourceIds: readonly string[]) {
     clear,
     allSelected,
     someSelected,
+    hasSelectable,
     count: selected.size,
   };
 }

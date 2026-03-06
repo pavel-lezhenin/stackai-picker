@@ -42,6 +42,10 @@ type FileListProps = {
   onBatchIndex: () => void;
   onBatchDeindex: () => void;
   onBatchDelete: () => void;
+  canBatchIndex: boolean;
+  canBatchDeindex: boolean;
+  canBatchDelete: boolean;
+  hasSelectable: boolean;
 };
 
 export function FileList({
@@ -74,6 +78,10 @@ export function FileList({
   onBatchIndex,
   onBatchDeindex,
   onBatchDelete,
+  canBatchIndex,
+  canBatchDeindex,
+  canBatchDelete,
+  hasSelectable,
 }: FileListProps) {
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -134,13 +142,25 @@ export function FileList({
     <div role="grid" aria-label="File list">
       {/* Selection toolbar — replaces search bar when items selected */}
       {selectionCount > 0 ? (
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-primary/5 transition-colors">
+        <div className="flex items-center gap-2 px-4 h-10 border-b border-border bg-primary/5 transition-colors">
           <span className="text-sm font-medium">{selectionCount} selected</span>
           <div className="flex-1" />
-          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onBatchIndex}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={onBatchIndex}
+            disabled={!canBatchIndex}
+          >
             Index
           </Button>
-          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onBatchDeindex}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={onBatchDeindex}
+            disabled={!canBatchDeindex}
+          >
             De-index
           </Button>
           <Button
@@ -148,6 +168,7 @@ export function FileList({
             size="sm"
             className="h-7 text-xs text-destructive hover:bg-destructive/10"
             onClick={onBatchDelete}
+            disabled={!canBatchDelete}
           >
             <Trash2 className="h-3 w-3 mr-1" />
             Delete
@@ -155,7 +176,7 @@ export function FileList({
         </div>
       ) : (
         /* Search bar — always visible (persists during loading) */
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-border">
+        <div className="flex items-center gap-2 px-4 h-10 border-b border-border">
           <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
           <input
             ref={searchRef}
@@ -189,6 +210,7 @@ export function FileList({
           <Checkbox
             checked={allSelected ? true : someSelected ? 'indeterminate' : false}
             onCheckedChange={onSelectAll}
+            disabled={!hasSelectable}
             aria-label={allSelected ? 'Deselect all' : 'Select all'}
           />
         </div>

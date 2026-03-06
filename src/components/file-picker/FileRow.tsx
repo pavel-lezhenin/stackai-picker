@@ -136,7 +136,12 @@ export const FileRow = memo(function FileRow({
     >
       {/* Checkbox */}
       <div role="gridcell" className="flex items-center" onClick={handleCheckbox}>
-        <Checkbox checked={isSelected} tabIndex={-1} aria-label={`Select ${name}`} />
+        <Checkbox
+          checked={isSelected}
+          disabled={isPending}
+          tabIndex={-1}
+          aria-label={`Select ${name}`}
+        />
       </div>
       {/* Name + Icon */}
       <div role="gridcell" className="flex items-center gap-3 min-w-0">

@@ -84,6 +84,11 @@ export function FileBrowser() {
     () => sortedResources.map((r) => r.resourceId),
     [sortedResources],
   );
+  // Pending rows are not selectable
+  const selectableResourceIds = useMemo(
+    () => sortedResources.filter((r) => r.status !== 'pending').map((r) => r.resourceId),
+    [sortedResources],
+  );
   const {
     selected,
     toggle: toggleSelect,
@@ -91,13 +96,28 @@ export function FileBrowser() {
     clear: clearSelection,
     allSelected,
     someSelected,
+    hasSelectable,
     count: selectionCount,
-  } = useSelection(sortedResourceIds);
+  } = useSelection(sortedResourceIds, selectableResourceIds);
 
   // Build lookup for selected resources
   const selectedResources = useMemo(
     () => sortedResources.filter((r) => selected.has(r.resourceId)),
     [sortedResources, selected],
+  );
+
+  // Determine which batch actions are applicable to the current selection
+  const canBatchIndex = useMemo(
+    () => selectedResources.some((r) => r.status === null || r.status === 'resource'),
+    [selectedResources],
+  );
+  const canBatchDeindex = useMemo(
+    () => selectedResources.some((r) => r.status === 'indexed'),
+    [selectedResources],
+  );
+  const canBatchDelete = useMemo(
+    () => selectedResources.some((r) => r.type !== 'folder' && r.status === 'indexed'),
+    [selectedResources],
   );
 
   // Wrap handleIndex to inject kbResources (breaks the circular dep)
@@ -272,6 +292,10 @@ export function FileBrowser() {
           onBatchIndex={handleBatchIndex}
           onBatchDeindex={handleBatchDeindex}
           onBatchDelete={handleBatchDelete}
+          canBatchIndex={canBatchIndex}
+          canBatchDeindex={canBatchDeindex}
+          canBatchDelete={canBatchDelete}
+          hasSelectable={hasSelectable}
         />
       </div>
     </div>
