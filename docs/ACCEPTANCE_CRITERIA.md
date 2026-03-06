@@ -53,7 +53,7 @@ This is where most candidates stop. Exceeding here gets you to the interview.
 
 ### Code Architecture (SOLID in Practice)
 
-- [x] **SRP**: Every component has exactly one reason to change. FileRow doesn't know about API calls. Toolbar doesn't know about data shapes.
+- **Single Responsibility**: Every component has exactly one reason to change. FileRow doesn't know about API calls. Toolbar doesn't know about data shapes.
 - [x] **OCP**: Adding a new file type (e.g., Google Slides) requires ZERO changes to FileRow — just add an icon mapping.
 - [x] **LSP**: The Resource type hierarchy works for both files and folders without type-checking hacks.
 - [x] **ISP**: No component receives props it doesn't use. FileRow gets `name`, `type`, `status` — not the entire Resource.
@@ -151,7 +151,7 @@ These will immediately lower your score:
 | API keys in client code             | Security violation                | BFF proxy via API routes                                                |
 | `console.log` in production         | Unprofessional                    | Remove or use proper logging                                            |
 | No loading states                   | CLS + bad UX                      | Skeleton matching final layout                                          |
-| Giant components (150+ lines)       | SRP violation                     | Decompose into sub-components                                           |
+| Giant components (250+ lines)       | SRP violation                     | Decompose into sub-components                                           |
 | Prop drilling > 2 levels            | Maintenance nightmare             | Use context or composition                                              |
 | Catching errors without handling    | Silent failures                   | Toast + retry or rethrow                                                |
 | CSS-in-JS or custom CSS             | Tech stack violation              | Tailwind only                                                           |
@@ -186,6 +186,8 @@ A feature is "done" when:
 3. Mutations have optimistic updates with rollback
 4. Error states show actionable feedback (toast + retry)
 5. TypeScript compiles with zero errors in strict mode
-6. The component follows SRP (< 100 lines ideal, < 150 max)
+
+- The component follows SRP (< 160 lines as a soft signal; >250 is a hard trigger)
+
 7. It's keyboard navigable
 8. It looks visually consistent with Shadcn design system

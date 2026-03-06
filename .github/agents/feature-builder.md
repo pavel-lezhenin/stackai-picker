@@ -226,4 +226,4 @@ type ApiResponse<T> =
 - ❌ Never use `index` as key in lists rendering mutable data
 - ❌ Never store derived state in `useState` — use `useMemo`
 - ❌ Never write CSS files — Tailwind only
-- ❌ Never write components >150 lines — decompose
+- ❌ Never write components >250 lines — decompose

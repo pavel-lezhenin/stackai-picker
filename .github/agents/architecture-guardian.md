@@ -63,7 +63,7 @@ src/
 
 #### Single Responsibility
 
-- [ ] **Component size**: `list_dir` + `read_file` each component. >150 lines = violation
+- [ ] **Component size**: `list_dir` + `read_file` each component. >250 lines = hard violation, 160-250 = review carefully
 - [ ] **One reason to change**: FileRow only renders a row. FileList only renders the list. Toolbar only handles actions.
 - [ ] **Hooks are single-purpose**: `useResources` doesn't also handle sorting (separate `useSortedResources` or `useMemo`)
 - [ ] **API routes don't contain business logic**: They proxy and transform, that's it

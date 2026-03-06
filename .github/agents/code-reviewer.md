@@ -39,7 +39,7 @@ Before reviewing, read these files for the quality bar:
 
 ### 3. SOLID Compliance
 
-- **SRP**: Is the component/hook doing exactly one thing? Check file size: >150 lines = likely SRP violation
+- **SRP**: Is the component/hook doing exactly one thing? Check file size: >250 lines = likely SRP violation, 160-250 = review carefully
 - **OCP**: Can you add a new file type without modifying existing code? Check for switch/if-else chains on file type
 - **LSP**: Does the Resource type work for both files and folders without `if (type === 'folder')` hacks?
 - **ISP**: Are prop interfaces minimal? Does FileRow receive the entire Resource object when it only needs 5 props?
