@@ -1,11 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
-import { AlertTriangle, ArrowDown, ArrowUp, FolderOpen, Search, X } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, FolderOpen, Search, Trash2, X } from 'lucide-react';
 
 import { FileRow } from '@/components/file-picker/FileRow';
 import { FileListSkeleton } from '@/components/file-picker/FileListSkeleton';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 
 import type { SortConfig, SortField } from '@/hooks/useSortAndFilter';
 import type { Resource } from '@/types/resource';
@@ -23,6 +24,13 @@ type FileListProps = {
   sort: SortConfig;
   searchQuery: string;
   debouncedQuery: string;
+  /** Selection state */
+  selected: ReadonlySet<string>;
+  allSelected: boolean;
+  someSelected: boolean;
+  selectionCount: number;
+  onToggleSelect: (id: string, shiftKey: boolean) => void;
+  onSelectAll: () => void;
   onToggleSort: (field: SortField) => void;
   onSearchChange: (value: string) => void;
   onClearSearch: () => void;
@@ -31,6 +39,9 @@ type FileListProps = {
   onIndex: (resource: Resource) => void;
   onDeindex: (path: string) => void;
   onRetry: () => void;
+  onBatchIndex: () => void;
+  onBatchDeindex: () => void;
+  onBatchDelete: () => void;
 };
 
 export function FileList({
@@ -46,6 +57,12 @@ export function FileList({
   sort,
   searchQuery,
   debouncedQuery,
+  selected,
+  allSelected,
+  someSelected,
+  selectionCount,
+  onToggleSelect,
+  onSelectAll,
   onToggleSort,
   onSearchChange,
   onClearSearch,
@@ -54,6 +71,9 @@ export function FileList({
   onIndex,
   onDeindex,
   onRetry,
+  onBatchIndex,
+  onBatchDeindex,
+  onBatchDelete,
 }: FileListProps) {
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -112,36 +132,66 @@ export function FileList({
 
   return (
     <div role="grid" aria-label="File list">
-      {/* Search bar — always visible (persists during loading) */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-border">
-        <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <input
-          ref={searchRef}
-          type="text"
-          placeholder="Search files… (press / to focus)"
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          disabled={isLoading}
-          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60 disabled:opacity-50"
-          aria-label="Search files"
-        />
-        {searchQuery && (
-          <button
-            onClick={onClearSearch}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Clear search"
+      {/* Selection toolbar — replaces search bar when items selected */}
+      {selectionCount > 0 ? (
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-primary/5 transition-colors">
+          <span className="text-sm font-medium">{selectionCount} selected</span>
+          <div className="flex-1" />
+          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onBatchIndex}>
+            Index
+          </Button>
+          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onBatchDeindex}>
+            De-index
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs text-destructive hover:bg-destructive/10"
+            onClick={onBatchDelete}
           >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
+            <Trash2 className="h-3 w-3 mr-1" />
+            Delete
+          </Button>
+        </div>
+      ) : (
+        /* Search bar — always visible (persists during loading) */
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-border">
+          <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <input
+            ref={searchRef}
+            type="text"
+            placeholder="Search files… (press / to focus)"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            disabled={isLoading}
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60 disabled:opacity-50"
+            aria-label="Search files"
+          />
+          {searchQuery && (
+            <button
+              onClick={onClearSearch}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Sortable column headers */}
       <div
         role="row"
-        className="grid grid-cols-[1fr_100px_120px_136px] items-center gap-4 px-4 py-2 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wide"
+        className="grid grid-cols-[28px_1fr_100px_120px_136px] items-center gap-4 px-4 py-2 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wide"
       >
+        <div role="columnheader" className="flex items-center">
+          <Checkbox
+            checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+            onCheckedChange={onSelectAll}
+            aria-label={allSelected ? 'Deselect all' : 'Select all'}
+          />
+        </div>
         <div
           role="columnheader"
           className="flex items-center gap-1 cursor-pointer select-none hover:text-foreground transition-colors"
@@ -218,10 +268,12 @@ export function FileList({
               isDeleting={deletingId === resource.resourceId}
               isPendingDelete={pendingDeleteId === resource.resourceId}
               isIndexing={isIndexing && resource.status === 'pending'}
+              isSelected={selected.has(resource.resourceId)}
               onNavigate={onNavigate}
               onDelete={onDelete}
               onIndex={onIndex}
               onDeindex={onDeindex}
+              onToggleSelect={onToggleSelect}
               resource={resource}
             />
           ))}

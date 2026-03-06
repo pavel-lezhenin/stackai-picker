@@ -4,6 +4,7 @@ import { memo, useCallback } from 'react';
 import { Check, Loader2, Trash2, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { StatusBadge } from '@/components/file-picker/StatusBadge';
 import { cn } from '@/lib/utils';
@@ -22,6 +23,8 @@ type FileRowProps = {
   resource: Resource;
   /** Substring to highlight in the file name (from search input) */
   searchHighlight?: string;
+  /** Whether this row is selected */
+  isSelected?: boolean;
   /** True while the exit animation runs (before row is removed from cache) */
   isDeleting?: boolean;
   /** True while the DELETE request is in-flight */
@@ -32,6 +35,7 @@ type FileRowProps = {
   onDelete: (resourceId: string, name: string, path: string) => void;
   onIndex: (resource: Resource) => void;
   onDeindex: (path: string) => void;
+  onToggleSelect: (resourceId: string, shiftKey: boolean) => void;
 };
 
 function formatDate(iso: string | null): string {
@@ -52,6 +56,7 @@ export const FileRow = memo(function FileRow({
   path,
   resource,
   searchHighlight = '',
+  isSelected = false,
   isDeleting = false,
   isPendingDelete = false,
   isIndexing = false,
@@ -59,6 +64,7 @@ export const FileRow = memo(function FileRow({
   onDelete,
   onIndex,
   onDeindex,
+  onToggleSelect,
 }: FileRowProps) {
   const { icon: Icon, label: iconLabel } = getFileTypeIcon(name, type);
   const isFolder = type === 'folder';
@@ -80,6 +86,14 @@ export const FileRow = memo(function FileRow({
       onDelete(resourceId, name, path);
     },
     [resourceId, name, path, onDelete],
+  );
+
+  const handleCheckbox = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onToggleSelect(resourceId, e.shiftKey);
+    },
+    [resourceId, onToggleSelect],
   );
 
   const handleIndex = useCallback(
@@ -107,17 +121,23 @@ export const FileRow = memo(function FileRow({
       role="row"
       tabIndex={0}
       className={cn(
-        'group grid grid-cols-[1fr_100px_120px_136px] items-center gap-4 px-4 py-2.5',
+        'group grid grid-cols-[28px_1fr_100px_120px_136px] items-center gap-4 px-4 py-2.5',
         'border-b border-border/50 transition-all duration-200',
         'hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none',
         isFolder && 'cursor-pointer',
+        isSelected && 'bg-primary/5',
         isDeleting && 'opacity-0 scale-95 pointer-events-none',
         isPendingDelete && 'opacity-60',
       )}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       aria-label={`${iconLabel}: ${name}`}
+      aria-selected={isSelected}
     >
+      {/* Checkbox */}
+      <div role="gridcell" className="flex items-center" onClick={handleCheckbox}>
+        <Checkbox checked={isSelected} tabIndex={-1} aria-label={`Select ${name}`} />
+      </div>
       {/* Name + Icon */}
       <div role="gridcell" className="flex items-center gap-3 min-w-0">
         <Icon

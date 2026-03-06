@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { BreadcrumbBar } from '@/components/file-picker/BreadcrumbBar';
 import { DeleteConfirmDialog } from '@/components/file-picker/DeleteConfirmDialog';
@@ -12,6 +12,7 @@ import { useKBResources } from '@/hooks/useKnowledgeBase';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useResourceMerge } from '@/hooks/useResourceMerge';
 import { useResources } from '@/hooks/useResources';
+import { useSelection } from '@/hooks/useSelection';
 import { useSortAndFilter } from '@/hooks/useSortAndFilter';
 import { cn } from '@/lib/utils';
 
@@ -78,6 +79,27 @@ export function FileBrowser() {
     clearSearch,
   } = useSortAndFilter(filteredResources);
 
+  // --- Selection (operates on the visible sorted resources) ---
+  const sortedResourceIds = useMemo(
+    () => sortedResources.map((r) => r.resourceId),
+    [sortedResources],
+  );
+  const {
+    selected,
+    toggle: toggleSelect,
+    selectAll,
+    clear: clearSelection,
+    allSelected,
+    someSelected,
+    count: selectionCount,
+  } = useSelection(sortedResourceIds);
+
+  // Build lookup for selected resources
+  const selectedResources = useMemo(
+    () => sortedResources.filter((r) => selected.has(r.resourceId)),
+    [sortedResources, selected],
+  );
+
   // Wrap handleIndex to inject kbResources (breaks the circular dep)
   const handleIndex = useCallback(
     (resource: Resource) => rawHandleIndex(resource, kbResources),
@@ -112,34 +134,74 @@ export function FileBrowser() {
     });
   }, [deleteTarget, deleteMutation]);
 
-  // --- Navigation wrappers that reset the status filter ---
+  // --- Navigation wrappers that reset the status filter + selection ---
   const handleNavigateWithReset = useCallback(
     (resourceId: string, name: string, folderPath: string) => {
       resetFilter();
       clearSearch();
+      clearSelection();
       handleNavigate(resourceId, name, folderPath);
     },
-    [handleNavigate, resetFilter, clearSearch],
+    [handleNavigate, resetFilter, clearSearch, clearSelection],
   );
 
   const handleBreadcrumbClickWithReset = useCallback(
     (index: number) => {
       resetFilter();
       clearSearch();
+      clearSelection();
       handleBreadcrumbClick(index);
     },
-    [handleBreadcrumbClick, resetFilter, clearSearch],
+    [handleBreadcrumbClick, resetFilter, clearSearch, clearSelection],
   );
 
   const handleBackWithReset = useCallback(() => {
     resetFilter();
     clearSearch();
+    clearSelection();
     handleBack();
-  }, [handleBack, resetFilter, clearSearch]);
+  }, [handleBack, resetFilter, clearSearch, clearSelection]);
 
   const handleRetry = useCallback(() => {
     refetch();
   }, [refetch]);
+
+  // --- Batch actions ---
+  const handleBatchIndex = useCallback(() => {
+    for (const r of selectedResources) {
+      if (r.status === null || r.status === 'resource') {
+        rawHandleIndex(r, kbResources);
+      }
+    }
+    clearSelection();
+  }, [selectedResources, rawHandleIndex, kbResources, clearSelection]);
+
+  const handleBatchDeindex = useCallback(() => {
+    for (const r of selectedResources) {
+      if (r.status === 'indexed') {
+        handleDeindex(r.path);
+      }
+    }
+    clearSelection();
+  }, [selectedResources, handleDeindex, clearSelection]);
+
+  const handleBatchDelete = useCallback(() => {
+    for (const r of selectedResources) {
+      if (r.type !== 'folder' && r.status === 'indexed') {
+        setHiddenResourceIds((prev) => new Set([...prev, r.resourceId]));
+        deleteMutation.mutate(r.path, {
+          onError: () => {
+            setHiddenResourceIds((prev) => {
+              const next = new Set(prev);
+              next.delete(r.resourceId);
+              return next;
+            });
+          },
+        });
+      }
+    }
+    clearSelection();
+  }, [selectedResources, deleteMutation, clearSelection]);
 
   const isLoading = isConnLoading || isResLoading;
   const isError = isConnError || isResError;
@@ -196,11 +258,20 @@ export function FileBrowser() {
           onToggleSort={toggleSort}
           onSearchChange={handleSearchChange}
           onClearSearch={clearSearch}
+          selected={selected}
+          allSelected={allSelected}
+          someSelected={someSelected}
+          selectionCount={selectionCount}
+          onToggleSelect={toggleSelect}
+          onSelectAll={selectAll}
           onNavigate={handleNavigateWithReset}
           onDelete={handleDelete}
           onIndex={handleIndex}
           onDeindex={handleDeindex}
           onRetry={handleRetry}
+          onBatchIndex={handleBatchIndex}
+          onBatchDeindex={handleBatchDeindex}
+          onBatchDelete={handleBatchDelete}
         />
       </div>
     </div>

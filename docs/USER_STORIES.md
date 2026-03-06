@@ -207,7 +207,7 @@
 - [x] Row exit animation (fade out + slight scale down) before removal
 - [x] Confirmation uses `AlertDialog` from Shadcn (not browser `confirm()`)
 - [ ] Toast shows undo option (soft delete with timer) — if API supports it
-- [ ] Batch delete when multiple items selected
+- [x] Batch delete when multiple items selected
 
 ---
 
@@ -225,7 +225,7 @@
 - [x] Status changes optimistically to "Pending" badge while indexing
 - [x] Success toast: "Started indexing '[filename]'"
 - [x] Error: status reverts, error toast with specific message
-- [ ] Batch indexing: select multiple → "Index Selected" toolbar button
+- [x] Batch indexing: select multiple → "Index Selected" toolbar button
 
 **WOW Detail:**
 
@@ -268,11 +268,11 @@
 - [x] Optimistic: status immediately changes to "Not Indexed"
 - [x] File remains in the listing
 - [x] On error: status reverts to "Indexed", error toast
-- [ ] Batch de-index supported when multiple indexed items selected
+- [x] Batch de-index supported when multiple indexed items selected
 
 **WOW Detail:**
 
-- [ ] Confirmation for batch de-index: "Remove X files from Knowledge Base?"
+- [x] Confirmation for batch de-index: "Remove X files from Knowledge Base?"
 - [x] Status transition animates smoothly (green → gray)
 
 ---
@@ -336,18 +336,18 @@
 
 **Acceptance Criteria:**
 
-- [ ] Checkbox on each row
-- [ ] "Select All" checkbox in table header
-- [ ] Selection count in toolbar: "X selected"
-- [ ] Batch action buttons appear when ≥1 item selected: "Index", "De-index", "Delete"
-- [ ] Selection clears on folder navigation
-- [ ] Select All checkbox shows indeterminate state when partially selected
+- [x] Checkbox on each row
+- [x] "Select All" checkbox in table header
+- [x] Selection count in toolbar: "X selected"
+- [x] Batch action buttons appear when ≥1 item selected: "Index", "De-index", "Delete"
+- [x] Selection clears on folder navigation
+- [x] Select All checkbox shows indeterminate state when partially selected
 
 **WOW Detail:**
 
-- [ ] Shift+Click for range selection (like native file managers)
-- [ ] Selected rows have distinct background (`bg-primary/5`)
-- [ ] Toolbar transitions smoothly between default and selection mode
+- [x] Shift+Click for range selection (like native file managers)
+- [x] Selected rows have distinct background (`bg-primary/5`)
+- [x] Toolbar transitions smoothly between default and selection mode
 
 ---
 
