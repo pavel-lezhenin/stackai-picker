@@ -124,3 +124,24 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Checkbox: scale-in on check + check-mark draw animation */
+  [data-state='checked'] > svg {
+    animation: checkbox-check 0.15s ease-out both;
+  }
+
+  @keyframes checkbox-check {
+    0% {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+    60% {
+      transform: scale(1.15);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}

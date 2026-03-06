@@ -94,7 +94,7 @@ These are the details that make an evaluator think "this person writes productio
 - [x] Smooth transitions on folder navigation (content fade/slide)
 - [x] Hover states on all interactive elements with subtle feedback
 - [x] Status badge transitions (color/icon morphs, not just swap)
-- [ ] Selection checkbox animation (scale + check mark draw)
+- [x] Selection checkbox animation (scale + check mark draw)
 - [x] Toast notifications with contextual messages (not generic "Success")
 - [x] Confirm dialog uses the file name ("Delete 'Q4 Report.pdf'?")
 
@@ -104,7 +104,7 @@ These are the details that make an evaluator think "this person writes productio
 - [x] `aria-label` on icon-only buttons
 - [x] `role="row"` and `role="gridcell"` on file list for screen readers
 - [x] Focus trap in confirmation dialogs
-- [ ] Skip to main content link
+- [x] Skip to main content link
 - [x] Announce status changes to screen readers (`aria-live` regions)
 - [x] Proper contrast ratios on all text and interactive elements
 
@@ -116,7 +116,7 @@ These are the details that make an evaluator think "this person writes productio
 - [ ] Right-click context menu on files (optional but impressive)
 - [ ] Drag selection across multiple files (rubberband, optional)
 - [x] Keyboard shortcut: `/` or `Cmd+K` to focus search
-- [ ] Empty state illustrations, not just text
+- [x] Empty state illustrations, not just text
 - [x] File type icons from a consistent icon set (not emoji)
 
 ### Code That Teaches

@@ -9,7 +9,7 @@ export default function Home() {
       <header className="border-b border-border px-6 py-4">
         <h1 className="text-lg font-semibold tracking-tight">Stack AI File Picker</h1>
       </header>
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <FileBrowserErrorBoundary>
           <FileBrowser />
         </FileBrowserErrorBoundary>
