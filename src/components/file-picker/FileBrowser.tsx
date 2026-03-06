@@ -12,6 +12,7 @@ import { useKBResources } from '@/hooks/useKnowledgeBase';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useResourceMerge } from '@/hooks/useResourceMerge';
 import { useResources } from '@/hooks/useResources';
+import { useSortAndFilter } from '@/hooks/useSortAndFilter';
 import { cn } from '@/lib/utils';
 
 import type { Resource } from '@/types/resource';
@@ -66,6 +67,17 @@ export function FileBrowser() {
   const { filteredResources, resources, indexedCount, statusFilter, setStatusFilter, resetFilter } =
     useResourceMerge(connectionResources, kbResources, hiddenResourceIds, localStatuses);
 
+  // --- Sort + Search (client-side, operates on filteredResources) ---
+  const {
+    sortedResources,
+    sort,
+    toggleSort,
+    searchQuery,
+    debouncedQuery,
+    handleSearchChange,
+    clearSearch,
+  } = useSortAndFilter(filteredResources);
+
   // Wrap handleIndex to inject kbResources (breaks the circular dep)
   const handleIndex = useCallback(
     (resource: Resource) => rawHandleIndex(resource, kbResources),
@@ -104,23 +116,26 @@ export function FileBrowser() {
   const handleNavigateWithReset = useCallback(
     (resourceId: string, name: string, folderPath: string) => {
       resetFilter();
+      clearSearch();
       handleNavigate(resourceId, name, folderPath);
     },
-    [handleNavigate, resetFilter],
+    [handleNavigate, resetFilter, clearSearch],
   );
 
   const handleBreadcrumbClickWithReset = useCallback(
     (index: number) => {
       resetFilter();
+      clearSearch();
       handleBreadcrumbClick(index);
     },
-    [handleBreadcrumbClick, resetFilter],
+    [handleBreadcrumbClick, resetFilter, clearSearch],
   );
 
   const handleBackWithReset = useCallback(() => {
     resetFilter();
+    clearSearch();
     handleBack();
-  }, [handleBack, resetFilter]);
+  }, [handleBack, resetFilter, clearSearch]);
 
   const handleRetry = useCallback(() => {
     refetch();
@@ -171,7 +186,7 @@ export function FileBrowser() {
           </div>
         )}
         <FileList
-          resources={filteredResources}
+          resources={sortedResources}
           isLoading={isLoading}
           isError={isError}
           errorMessage={errorMessage}
@@ -180,6 +195,12 @@ export function FileBrowser() {
           indexedCount={indexedCount}
           totalCount={resources.length}
           isIndexing={isIndexing}
+          sort={sort}
+          searchQuery={searchQuery}
+          debouncedQuery={debouncedQuery}
+          onToggleSort={toggleSort}
+          onSearchChange={handleSearchChange}
+          onClearSearch={clearSearch}
           onNavigate={handleNavigateWithReset}
           onDelete={handleDelete}
           onIndex={handleIndex}

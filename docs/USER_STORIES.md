@@ -287,17 +287,17 @@
 
 **Acceptance Criteria:**
 
-- [ ] Column headers ("Name", "Modified") are clickable for sorting
-- [ ] Sort direction indicators: ▲ ascending, ▼ descending
-- [ ] Sort options: Name A-Z, Name Z-A, Date Newest, Date Oldest
-- [ ] Folders always grouped before files regardless of sort order
-- [ ] Sort is client-side (no API call needed — instant)
-- [ ] Sort preference persists within session (not reset on folder navigation)
+- [x] Column headers ("Name", "Modified") are clickable for sorting
+- [x] Sort direction indicators: ▲ ascending, ▼ descending
+- [x] Sort options: Name A-Z, Name Z-A, Date Newest, Date Oldest
+- [x] Folders always grouped before files regardless of sort order
+- [x] Sort is client-side (no API call needed — instant)
+- [x] Sort preference persists within session (not reset on folder navigation)
 
 **WOW Detail:**
 
-- [ ] Default sort: folders first, then files alphabetically
-- [ ] Active sort column highlighted
+- [x] Default sort: folders first, then files alphabetically
+- [x] Active sort column highlighted
 - [ ] No layout shift on sort change (items animate into new positions if feasible)
 
 ---
@@ -310,17 +310,17 @@
 
 **Acceptance Criteria:**
 
-- [ ] Search input in toolbar area
-- [ ] Client-side filtering as user types (debounced 300ms)
-- [ ] "No results matching '[query]'" empty state
-- [ ] Clear button (X icon) to reset filter
-- [ ] Filter resets when navigating to a different folder
-- [ ] Results update smoothly without layout shift
+- [x] Search input in toolbar area
+- [x] Client-side filtering as user types (debounced 300ms)
+- [x] "No results matching '[query]'" empty state
+- [x] Clear button (X icon) to reset filter
+- [x] Filter resets when navigating to a different folder
+- [x] Results update smoothly without layout shift
 
 **WOW Detail:**
 
 - [ ] Keyboard shortcut: `Cmd+K` or `/` focuses search input
-- [ ] Search input has `magnifying glass` icon prefix
+- [x] Search input has `magnifying glass` icon prefix
 - [ ] Matching text highlighted in results (bold the matching substring)
 - [ ] Escape key clears search and returns focus to file list
 
