@@ -4,9 +4,41 @@ A custom Google Drive File Picker built for the [Stack AI](https://www.stack-ai.
 
 > **[Live Demo](https://stackai-picker-topaz.vercel.app)**
 
+## Contents
+
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Testing](#testing)
+- [Development Workflow](#development-workflow)
+- [Getting Started](#getting-started)
+
 ---
 
-## Tech Stack & Rationale
+## Features
+
+| Area                 | What's included                                                                               |
+| -------------------- | --------------------------------------------------------------------------------------------- |
+| **File Browsing**    | Root listing, folder navigation, breadcrumbs, back button, cache-first re-navigation          |
+| **Display**          | Contextual file-type icons, status badges, modified date, highlighted search matches          |
+| **Sorting**          | Clickable column headers (Name / Modified), ▲▼ indicators, folders always pinned first        |
+| **Search & Filter**  | Real-time filtering, `/` shortcut, match highlighting, status filter tabs                     |
+| **Selection**        | Checkboxes, Select All (indeterminate), Shift+click range, drag rubber-band select            |
+| **Batch Actions**    | Index / De-index / Delete toolbar for selected items                                          |
+| **Indexing**         | Per-row & batch index, optimistic status → Pending, polling to Indexed, folder de-duplication |
+| **De-indexing**      | Per-row & batch, optimistic rollback, file stays in listing                                   |
+| **Deletion**         | Confirmation dialog with exact filename, optimistic fade-out, rollback on error               |
+| **Context Menu**     | Right-click menu on rows (Open, Index, De-index, Delete)                                      |
+| **Keyboard**         | `Enter` open, `Backspace`/`Alt+←` back, `/` search, `Escape` clear, `Space` select            |
+| **Accessibility**    | `role="grid"` semantics, `aria-label`, `aria-live`, focus trap in dialogs, WCAG contrast      |
+| **Loading / Errors** | Zero-CLS skeletons, error cards with retry, optimistic rollback toasts                        |
+| **Security**         | BFF proxy (no client-side secrets), server-side token cache, Zod API validation               |
+
+→ Full feature details: [`docs/FEATURES.md`](docs/FEATURES.md)
+
+---
+
+## Tech Stack
 
 | Technology                  | Why                                                                                                                                                                                     |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -110,18 +142,119 @@ Sorting is applied client-side with folders always pinned above files, regardles
 
 ---
 
+## Testing
+
+### API integration tests (Vitest)
+
+```bash
+npx vitest run
+```
+
+Tests read the same variables from `.env.local` that the app uses at runtime — no separate test config needed.
+
+Four test suites hit the **real Stack AI API** and systematically verify every endpoint:
+
+| Suite                     | What it tests                                                                |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| `auth.test.ts`            | Supabase token flow — valid creds, wrong password, missing API key           |
+| `connections.test.ts`     | ISS-2 (wrong domain), ISS-3 (/v1/ prefix), ISS-4 (response shape mismatches) |
+| `knowledge-bases.test.ts` | Full KB lifecycle: create → sync → list resources → delete. ISS-5/6/7/8/9/10 |
+| `pagination.test.ts`      | Cursor field nullability, auth boundary enforcement (401 without token)      |
+
+These tests discovered **10 bugs** in the provided API documentation and environment (see `docs/issues/`), including 5 blockers (wrong domain, missing path prefix, incorrect endpoint names). Each bug is documented with a `[DOCS BUG]` assertion that proves the documented behavior fails, and a `[FIX]` assertion that proves the corrected behavior works.
+
+**Why integration tests first?** The Stack AI API reference contained significant inaccuracies. Integration tests were the fastest way to pin down the real contract — every ISS-\* issue was found by a failing test assertion, not by browser debugging.
+
+### Next testing layers
+
+| Priority | Layer           | Stack                    | Scope                                                                      |
+| -------- | --------------- | ------------------------ | -------------------------------------------------------------------------- |
+| 1        | BFF route tests | Vitest + MSW             | Auth caching, error mapping, Zod validation — isolated from live API       |
+| 2        | Unit tests      | Vitest                   | Pure logic: `useSortAndFilter`, `useSelection`, file-type mapping          |
+| 3        | Component tests | Vitest + Testing Library | FileRow states, keyboard nav, aria attributes, skeleton→content transition |
+| 4        | E2E flows       | Playwright               | Full user journeys: browse → index → verify status → de-index → delete     |
+
+---
+
+## Development Workflow
+
+### Scripts
+
+| Command                 | Description                                                |
+| ----------------------- | ---------------------------------------------------------- |
+| `npm run dev`           | Start development server                                   |
+| `npm run build`         | Production build                                           |
+| `npm run lint`          | Run ESLint                                                 |
+| `npm run typecheck`     | TypeScript type checking                                   |
+| `npm run format`        | Format all files with Prettier                             |
+| `npm run format:check`  | Check formatting (CI mode)                                 |
+| `npm run check-secrets` | Scan for leaked secrets (gitleaks)                         |
+| `npm run precommit`     | Full pre-commit suite: format + lint + typecheck + secrets |
+
+### Pre-commit Hooks (Husky + lint-staged)
+
+Every `git commit` automatically runs **Prettier** (format) and **ESLint** (lint + auto-fix) on staged files. Commits are blocked if errors remain.
+
+### CI Pipeline (GitHub Actions)
+
+Runs on every push and PR to `main`:
+
+```
+format ──┐
+lint    ──┤
+typecheck─┤──► build
+security ─┘
+```
+
+- **Format** — `prettier --check` (fails if unformatted code)
+- **Lint** — ESLint
+- **Type Check** — `tsc --noEmit`
+- **Security** — [Gitleaks](https://github.com/gitleaks/gitleaks) secret scanning + `npm audit`
+- **Build** — `next build` (only runs after all checks pass)
+
+### AI Agents (`.github/agents/`)
+
+The project includes a structured AI agent system (`.github/copilot-instructions.md` + `.github/agents/`) that enforces quality at every stage — not as a novelty, but as executable checklists.
+
+**Copilot Instructions** (`.github/copilot-instructions.md`) — a project-wide ruleset loaded into every AI session. Defines the mandated tech stack, architecture boundaries, TypeScript strictness rules, performance budget, and coding conventions.
+
+Six role-specific agents covering distinct review disciplines:
+
+| Agent                   | Purpose                                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------------ |
+| `feature-builder`       | Implements features following the types → hooks → components workflow from User Stories    |
+| `code-reviewer`         | Reviews code quality — security, TypeScript, SOLID, performance                            |
+| `architecture-guardian` | Enforces file structure, component boundaries, and import conventions                      |
+| `security-auditor`      | OWASP-based audit: credential exposure, BFF enforcement, token lifecycle, input validation |
+| `ux-reviewer`           | Enterprise polish: CLS, optimistic update UX, empty/error states, WCAG accessibility       |
+| `debugger`              | Structured root-cause analysis with a common-issues lookup table                           |
+
+**Why?** Executable checklists run at commit time — the `security-auditor` catches credential exposure and injection vectors, the `architecture-guardian` flags structural drift before it's merged. Same principle as linting, applied to architecture and security.
+
+### Documentation (`docs/`)
+
+| Document                 | Purpose                                                                                                                      |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `REQUIREMENTS.md`        | Functional and non-functional requirements. Each FR/NFR is numbered and traceable to code.                                   |
+| `USER_STORIES.md`        | Epics → User Stories → Acceptance Criteria. Each story has `[x]` checkboxes updated as features land.                        |
+| `ACCEPTANCE_CRITERIA.md` | Three-tier quality bar: Baseline (must pass), Quality (must excel), WOW (differentiators). Keeps the bar visible.            |
+| `API_REFERENCE.md`       | Stack AI API docs — augmented with corrections discovered during testing (see ISS-\* issues below).                          |
+| `FEATURES.md`            | All implemented features, grouped by area.                                                                                   |
+| `issues/`                | 10 documented bugs in the provided API/docs environment, each with ISS-number, severity, reproduction steps, and workaround. |
+
+> **Why this structure?** The docs directory replaces a PM, QA team, and sprint board — they show _how_ I work, not just _what_ I built. Every feature is traceable from requirement → story → acceptance criteria → committed code.
+
+---
+
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+
-- npm (or pnpm / yarn)
 
-### 1. Clone & Install
+### 1. Install
 
 ```bash
-git clone https://github.com/<your-username>/stackai-picker.git
-cd stackai-picker
 npm install
 ```
 
@@ -145,7 +278,7 @@ Required variables (see `.env.example`):
 
 > **Security**: These variables are only used in server-side API routes. They are never exposed to the client.
 
-### 3. Run Development Server
+### 3. Run
 
 ```bash
 npm run dev
@@ -153,173 +286,8 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### 4. Build for Production
-
-```bash
-npm run build
-npm start
-```
-
----
-
-## Features
-
-- **File Browsing** — Navigate Google Drive hierarchy with breadcrumb navigation. Double-click a folder row to enter it (like Google Drive / Finder), or click the folder name directly.
-- **Multi-Selection** — Checkbox selection with Select All (indeterminate state), Shift+click range selection, and batch Index / De-index / Delete toolbar. Pending rows are excluded from selection.
-- **Indexing** — Index files/folders into a Knowledge Base with real-time status tracking (indexed / pending / not indexed). Optimistic cache update with rollback on failure.
-- **De-indexing** — Remove files from KB without deleting from the listing. Status reverts instantly on error.
-- **Deletion** — De-list files with confirmation dialog (shows file name), optimistic removal with fade-out animation.
-- **Sorting** — Clickable column headers with direction indicators (▲▼). Sort by name, modified date, or status. Folders always pinned above files.
-- **Search / Filter** — Real-time client-side filtering with match highlighting. Press `/` to focus, `Escape` to clear and blur.
-- **Keyboard Shortcuts** — `Backspace` / `Alt+←` to navigate up a folder. `Enter` to open a folder. `/` to focus search. `Escape` to clear search. `Tab` through rows.
-- **Accessibility** — `role="grid"` / `role="row"` / `role="gridcell"` semantics. `aria-label` on all icon-only buttons. `aria-selected` on rows. Focus-visible rings via Shadcn.
-
----
-
-## Development Workflow
-
-### Pre-commit Hooks (Husky + lint-staged)
-
-Every `git commit` automatically runs:
-
-- **Prettier** — formats staged `.ts`, `.tsx`, `.json`, `.md`, `.css`, `.yml` files
-- **ESLint** — lints and auto-fixes staged `.ts`/`.tsx` files
-
-Commits are blocked if formatting or lint errors remain.
-
-### Available Scripts
-
-| Command                 | Description                                                |
-| ----------------------- | ---------------------------------------------------------- |
-| `npm run dev`           | Start development server                                   |
-| `npm run build`         | Production build                                           |
-| `npm run lint`          | Run ESLint                                                 |
-| `npm run typecheck`     | TypeScript type checking                                   |
-| `npm run format`        | Format all files with Prettier                             |
-| `npm run format:check`  | Check formatting (CI mode)                                 |
-| `npm run check-secrets` | Scan for leaked secrets (gitleaks)                         |
-| `npm run precommit`     | Full pre-commit suite: format + lint + typecheck + secrets |
-
-### CI Pipeline (GitHub Actions)
-
-Runs on every push and PR to `main`:
-
-```
-format ──┐
-lint    ──┤
-typecheck─┤──► build
-security ─┘
-```
-
-- **Format** — `prettier --check` (fails if unformatted code)
-- **Lint** — ESLint
-- **Type Check** — `tsc --noEmit`
-- **Security** — [Gitleaks](https://github.com/gitleaks/gitleaks) secret scanning + `npm audit`
-- **Build** — `next build` (only runs after all checks pass)
-
----
-
-## AI-Assisted Development Workflow
-
-The project includes a structured AI agent system (`.github/copilot-instructions.md` + `.github/agents/`) that enforces quality at every stage — not as a novelty, but as executable checklists.
-
-### Copilot Instructions (`.github/copilot-instructions.md`)
-
-A project-wide ruleset automatically loaded into every AI session. Defines the mandated tech stack, architecture boundaries (BFF-only, query key factory, optimistic update protocol), TypeScript strictness rules, performance budget, and coding conventions. Acts as a single source of truth — any AI-generated code that violates these rules is caught immediately.
-
-### Specialized Agents (`.github/agents/`)
-
-Six role-specific agents that simulate a team review process for a solo developer:
-
-| Agent                   | Purpose                                                                                    |
-| ----------------------- | ------------------------------------------------------------------------------------------ |
-| `feature-builder`       | Implements features following the types → hooks → components workflow from User Stories    |
-| `code-reviewer`         | Reviews code as a Stack AI tech lead would — security, TypeScript, SOLID, performance      |
-| `architecture-guardian` | Enforces file structure, component boundaries, and import conventions                      |
-| `security-auditor`      | OWASP-based audit: credential exposure, BFF enforcement, token lifecycle, input validation |
-| `ux-reviewer`           | Enterprise polish: CLS, optimistic update UX, empty/error states, WCAG accessibility       |
-| `debugger`              | Structured root-cause analysis with a common-issues lookup table                           |
-
-**Why?** A solo developer doesn't have a team to catch mistakes. These agents are executable checklists — the `security-auditor` runs the same checks a security reviewer would, the `architecture-guardian` catches structural drift before it's committed. Same principle as linting, applied to architecture and security.
-
----
-
-## Documentation as Architecture
-
-The `docs/` directory is not boilerplate — it's a structured decision-making framework that drove every implementation choice:
-
-| Document                 | Purpose                                                                                                                      |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| `REQUIREMENTS.md`        | Functional and non-functional requirements. Each FR/NFR is numbered and traceable to code.                                   |
-| `USER_STORIES.md`        | Epics → User Stories → Acceptance Criteria. Each story has `[x]` checkboxes updated as features land.                        |
-| `ACCEPTANCE_CRITERIA.md` | Three-tier quality bar: Baseline (must pass), Quality (must excel), WOW (differentiators). Keeps the bar visible.            |
-| `API_REFERENCE.md`       | Stack AI API docs — augmented with corrections discovered during testing (see ISS-\* issues below).                          |
-| `issues/`                | 10 documented bugs in the provided API/docs environment, each with ISS-number, severity, reproduction steps, and workaround. |
-
-> **Why this structure?** A take-home project doesn't have a PM, QA team, or sprint board. These docs replace all three — they show _how_ I work, not just _what_ I built. Every feature is traceable from requirement → story → acceptance criteria → committed code.
-
----
-
-## Testing Strategy
-
-### What exists: API integration tests (Vitest)
-
-```bash
-npx vitest run    # requires .env.local with valid Stack AI credentials
-```
-
-Four test suites hit the **real Stack AI API** and systematically verify every endpoint referenced in the assignment:
-
-| Suite                     | What it tests                                                                |
-| ------------------------- | ---------------------------------------------------------------------------- |
-| `auth.test.ts`            | Supabase token flow — valid creds, wrong password, missing API key           |
-| `connections.test.ts`     | ISS-2 (wrong domain), ISS-3 (/v1/ prefix), ISS-4 (response shape mismatches) |
-| `knowledge-bases.test.ts` | Full KB lifecycle: create → sync → list resources → delete. ISS-5/6/7/8/9/10 |
-| `pagination.test.ts`      | Cursor field nullability, auth boundary enforcement (401 without token)      |
-
-These tests discovered **10 bugs** in the provided API documentation and environment (see `docs/issues/`), including 5 blockers (wrong domain, missing path prefix, incorrect endpoint names). Each bug is documented with a `[DOCS BUG]` assertion that proves the documented behavior fails, and a `[FIX]` assertion that proves the corrected behavior works.
-
-**Why integration tests first?** The assignment's API reference contained significant inaccuracies. Writing integration tests was the fastest way to discover the real API contract — every ISS-\* issue was found by a failing test, not by debugging in the browser. This saved hours of trial-and-error.
-
-### What's not tested: BFF routes
-
-The `app/api/` routes (BFF proxy) are not covered by automated tests. These routes are thin wrappers that:
-
-1. Authenticate via cached server-side token
-2. Forward to Stack AI API
-3. Validate response with Zod
-4. Return normalized `{ data }` or `{ error, status }`
-
-For a production system, BFF route tests would run against a mock Stack AI backend (e.g., MSW) to verify error mapping, caching behavior, and Zod validation. In this project, the BFF logic is simple enough — and the API integration tests verify the real backend — that the ROI of BFF-specific tests is low.
-
-### What would come next (production roadmap)
-
-If this were a production codebase, I'd add testing in this priority order:
-
-| Priority | Layer                      | Framework                | What it covers                                                                                                                                                                                   |
-| -------- | -------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **1**    | **Contract tests**         | Vitest + Zod             | Assert that Stack AI API responses match Zod schemas. Run on CI nightly — catches API changes before they break prod. The Zod schemas already exist; only the CI job is missing.                 |
-| **2**    | **BFF integration tests**  | Vitest + MSW             | Mock the Stack AI API, test BFF routes in isolation: auth caching, error mapping, Zod validation failures, 4xx/5xx forwarding.                                                                   |
-| **3**    | **Unit tests**             | Vitest                   | Pure logic: `useSortAndFilter` (folder-first sort, status rank), `useSelection` (shift-click range, selectable enforcement), `formatDate`, file type icon mapping.                               |
-| **4**    | **Component tests**        | Vitest + Testing Library | Render FileRow, FileList in isolation. Verify checkbox states, keyboard navigation, aria attributes, skeleton-to-content transition.                                                             |
-| **5**    | **E2E / Acceptance tests** | Playwright               | Full user flows based on User Stories: browse → navigate → index → verify status → de-index → delete. Would use MSW or test Stack AI account.                                                    |
-| **6**    | **Visual regression**      | Storybook + Chromatic    | Snapshot every component state (empty, loading, error, populated). Catch unintended styling changes across Shadcn/Tailwind updates. Also serves as a living component catalog for design review. |
-
-> **Why not now?** This is a take-home assignment, not a production codebase. The integration tests exist because they were necessary to understand the real API. Adding unit/component/E2E tests for a solo project with no ongoing maintenance would be engineering theater — effort spent on ceremony rather than signal. The code quality is better demonstrated by the architecture itself: strict TypeScript, Zod boundaries, `React.memo` strategy, and SOLID structure make bugs structurally unlikely.
-
----
-
-## Deployment (Vercel)
-
-1. Push your repository to GitHub
-2. Go to [vercel.com/new](https://vercel.com/new) → Import your GitHub repo
-3. Add **Environment Variables** in Vercel dashboard (Settings → Environment Variables) — same 5 variables from `.env.example`
-4. Click **Deploy** — Vercel auto-detects Next.js, no extra config needed
-
-No `vercel.json` or Docker setup required.
-
 ---
 
 ## License
 
-Private — Stack AI take-home assignment.
+MIT

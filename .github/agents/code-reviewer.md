@@ -90,6 +90,8 @@ Before reviewing, read these files for the quality bar:
 
 ## Output Format
 
+Write results to `docs/audits/code-review-<YYYY-MM-DD>.md`.
+
 Group findings by severity. Each finding includes file, line, issue, and fix:
 
 ```

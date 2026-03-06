@@ -92,3 +92,7 @@ After every fix, verify:
 - [ ] Loading/error states still work correctly
 - [ ] Optimistic updates still roll back on error
 - [ ] Fix doesn't introduce new CLS (layout shift)
+
+## Output
+
+Write results to `docs/audits/debug-<YYYY-MM-DD>.md`. Include: bug description, root cause, minimal fix applied, files changed, and verification result (`get_errors` output).

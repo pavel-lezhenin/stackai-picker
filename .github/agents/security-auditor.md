@@ -73,6 +73,8 @@ A single security flaw in a take-home task = instant rejection.
 
 ## Output Format
 
+Write results to `docs/audits/security-<YYYY-MM-DD>.md`.
+
 ```
 ## 🔴 CRITICAL — Must Fix (Exploitable Vulnerability)
 

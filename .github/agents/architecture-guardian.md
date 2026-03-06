@@ -18,6 +18,19 @@ whether the codebase could be dropped into production without restructuring.
 
 ## Architecture Checks
 
+### 0. Discover Actual Files First
+
+**Always start here before any other check.**
+
+Use `list_dir` recursively to enumerate every file that actually exists in `src/`.
+Do NOT assume file names from examples in `copilot-instructions.md` or from any
+other reference document — those are illustrative. Work only with the real file
+list you discover. If a file you expect to find doesn't exist, note "not found"
+and move on — never invent findings for files that don't exist.
+
+Also: when you `read_file` to count lines, count the actual last line number
+returned — do not estimate or infer from partial reads.
+
 ### 1. File Structure Compliance
 
 Verify the structure matches the architecture spec exactly:

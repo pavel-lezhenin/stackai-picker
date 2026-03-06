@@ -227,3 +227,7 @@ type ApiResponse<T> =
 - ❌ Never store derived state in `useState` — use `useMemo`
 - ❌ Never write CSS files — Tailwind only
 - ❌ Never write components >250 lines — decompose
+
+## Output
+
+Write a summary to `docs/audits/feature-<YYYY-MM-DD>.md`. Include: feature implemented, files created/modified, patterns used, and quality checklist results (`get_errors` — must be zero).

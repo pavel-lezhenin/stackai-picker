@@ -206,6 +206,7 @@
 
 - [x] Row exit animation (fade out + slight scale down) before removal
 - [x] Confirmation uses `AlertDialog` from Shadcn (not browser `confirm()`)
+- [ ] Toast shows undo option (soft delete with timer) — API does not support undo; skipped
 - [x] Batch delete when multiple items selected
 
 ---

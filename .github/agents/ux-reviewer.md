@@ -104,6 +104,8 @@ are banks, defense, and government — they expect enterprise-grade UX.
 
 ## Output Format
 
+Write results to `docs/audits/ux-<YYYY-MM-DD>.md`.
+
 ```
 ## 🎨 UX & ACCESSIBILITY AUDIT
 
