@@ -206,11 +206,15 @@ export function FileList({
         role="row"
         className="grid grid-cols-[28px_1fr_100px_120px_136px] items-center gap-4 px-4 py-2 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wide"
       >
-        <div role="columnheader" className="flex items-center">
+        <div
+          role="columnheader"
+          className="flex items-center -m-2 p-2 cursor-pointer"
+          onClick={onSelectAll}
+        >
           <Checkbox
             checked={allSelected ? true : someSelected ? 'indeterminate' : false}
-            onCheckedChange={onSelectAll}
             disabled={!hasSelectable}
+            className="pointer-events-none"
             aria-label={allSelected ? 'Deselect all' : 'Select all'}
           />
         </div>

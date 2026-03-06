@@ -136,8 +136,11 @@ export const FileRow = memo(function FileRow({
       aria-label={`${iconLabel}: ${name}`}
       aria-selected={isSelected}
     >
-      {/* Checkbox */}
-      <div role="gridcell" className="flex items-center">
+      {/* Checkbox — expanded click area without changing layout */}
+      <div
+        role="gridcell"
+        className="flex items-center -my-2.5 py-2.5 -mr-4 pr-4 -ml-2 pl-2 cursor-pointer"
+      >
         <Checkbox
           checked={isSelected}
           disabled={isPending}
