@@ -10,18 +10,6 @@ import { fetchFolderChildren } from '@/lib/fetchFolderChildren';
 import type { Resource, ResourceStatus } from '@/types/resource';
 
 /**
- * Files that cloud storage providers include as metadata but indexing backends
- * silently skip. If we add these to localStatuses as 'pending', they stick
- * forever because the server never returns a confirmation for them.
- * Filter them out BEFORE submission and before optimistic state updates.
- */
-function isSystemFile(name: string): boolean {
-  if (name.startsWith('.')) return true; // .DS_Store, .gitignore, .gitkeep, etc.
-  if (name === 'desktop.ini' || name === 'Thumbs.db') return true; // Windows metadata
-  return false;
-}
-
-/**
  * Encapsulates all indexing / de-indexing state and logic:
  * - KB ID lifecycle
  * - Optimistic `localStatuses` map
@@ -58,9 +46,7 @@ export function useIndexing(connectionId: string | undefined, orgId: string | un
 
         try {
           const children = await fetchFolderChildren(connectionId, resource.resourceId);
-          // Exclude system files: backend silently skips them, so if we mark
-          // them 'pending' in localStatuses they get stuck forever (ISS-11).
-          newResources = children.filter((c) => c.type === 'file' && !isSystemFile(c.name));
+          newResources = children.filter((c) => c.type === 'file');
           if (newResources.length === 0) {
             toast.error('Folder is empty — nothing to index');
             setLocalStatuses((prev) => {
@@ -76,11 +62,7 @@ export function useIndexing(connectionId: string | undefined, orgId: string | un
           ];
           setLocalStatuses((prev) => {
             const next = new Map(prev);
-            // Only track non-system files: system files are skipped by the
-            // backend and would be stuck as 'pending' if we included them.
-            children
-              .filter((c) => !isSystemFile(c.name))
-              .forEach((c) => next.set(c.name, 'pending'));
+            children.forEach((c) => next.set(c.name, 'pending'));
             alreadyIndexed.forEach((r) => next.set(r.name, 'indexed'));
             return next;
           });
