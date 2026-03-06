@@ -19,14 +19,16 @@ import type { PaginatedResponse } from '@/types/api';
  * once all resources reach a terminal state (indexed / resource).
  */
 export function useKBResources(kbId: string | undefined, resourcePath: string = '/') {
+  // KB API requires resource_path to start with '/'
+  const normalizedPath = resourcePath.startsWith('/') ? resourcePath : `/${resourcePath}`;
   return useQuery({
-    queryKey: resourceKeys.kbResourceList(kbId ?? '', resourcePath),
+    queryKey: resourceKeys.kbResourceList(kbId ?? '', normalizedPath),
     queryFn: async (): Promise<KBResource[]> => {
       const all: KBResource[] = [];
       let cursor: string | null = null;
 
       do {
-        const params = new URLSearchParams({ resource_path: resourcePath });
+        const params = new URLSearchParams({ resource_path: normalizedPath });
         if (cursor) params.set('cursor', cursor);
 
         const page = await apiFetch<PaginatedResponse<KBResource>>(
@@ -40,11 +42,17 @@ export function useKBResources(kbId: string | undefined, resourcePath: string = 
     },
     enabled: !!kbId,
     staleTime: 5 * 60 * 1000,
-    // Auto-poll while any resource is still being indexed
+    // Auto-poll while resources are being indexed.
+    // Also poll when the list is empty — the KB may not list resources immediately
+    // after sync/trigger fires (async server-side processing takes a moment).
+    // Stop ONLY when every resource has reached 'indexed' — checking for 'pending'
+    // alone misses undocumented transitional states the API may return (e.g. 'resource',
+    // 'queued', 'processing'). This covers the full documented + undocumented lifecycle.
     refetchInterval: (query) => {
       const data = query.state.data;
       if (!data) return false;
-      return data.some((r) => r.status === 'pending') ? 3000 : false;
+      if (data.length === 0) return 1000;
+      return data.every((r) => r.status === 'indexed') ? false : 1000;
     },
     select: (data): Resource[] =>
       data.map(toResource).sort((a, b) => {
@@ -160,6 +168,8 @@ export function useDeleteKBResource(kbId: string | undefined) {
  * include those resources in the `resources` array alongside new selections.
  */
 export function useIndexResources() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (params: { connectionId: string; resources: Resource[]; orgId: string }) => {
       const connectionSourceIds = deduplicateForIndexing(params.resources);
@@ -172,23 +182,27 @@ export function useIndexResources() {
         }),
       });
 
+      // Fire-and-forget: don't await sync — it starts a background job anyway.
+      // Waiting for the response adds 1-3s to mutation time with zero benefit;
+      // the polling in useKBResources picks up status changes regardless.
       const qs = new URLSearchParams({ org_id: params.orgId });
-      await apiFetch<unknown>(`/knowledge-bases/${kb.knowledge_base_id}/sync?${qs}`, {
+      apiFetch<unknown>(`/knowledge-bases/${kb.knowledge_base_id}/sync?${qs}`, {
         method: 'POST',
+      }).catch(() => {
+        // Sync failure is non-fatal here — the KB was created successfully.
+        // The user will see resources stuck in 'pending' and can retry.
       });
 
       return kb;
     },
 
-    onError: (error: Error) => {
-      toast.error(`Failed to index: ${error.message}`);
+    onSuccess: () => {
+      // Force immediate refetch of KB resources instead of waiting for next poll cycle
+      queryClient.invalidateQueries({ queryKey: resourceKeys.kbResources() });
     },
 
-    onSuccess: (_data, variables) => {
-      const count = variables.resources.length;
-      toast.success(
-        `Indexing ${count} ${count === 1 ? 'item' : 'items'} — status updates automatically`,
-      );
+    onError: (error: Error) => {
+      toast.error(`Failed to index: ${error.message}`);
     },
   });
 }

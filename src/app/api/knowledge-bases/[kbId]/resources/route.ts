@@ -21,6 +21,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!response.ok) {
       const text = await response.text();
       console.error(`[BFF /knowledge-bases/.../resources GET] upstream ${response.status}:`, text);
+      // 400 typically means the resource_path doesn't exist in the KB yet
+      // (e.g. indexing hasn't created that folder node). Return empty data
+      // so polling continues and the client doesn't break.
+      if (response.status === 400) {
+        return NextResponse.json({ data: { data: [], next_cursor: null, current_cursor: null } });
+      }
       return NextResponse.json(
         { error: `Failed to fetch KB resources (${response.status})`, status: response.status },
         { status: response.status },

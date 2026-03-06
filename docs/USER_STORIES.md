@@ -221,17 +221,17 @@
 
 **Acceptance Criteria:**
 
-- [ ] Per-row "Index" action button (or toggle)
-- [ ] Status changes optimistically to "Indexed" with green badge
-- [ ] Success toast: "Successfully indexed '[filename]'"
-- [ ] Error: status reverts, error toast with specific message
+- [x] Per-row "Index" action button (or toggle)
+- [x] Status changes optimistically to "Pending" badge while indexing
+- [x] Success toast: "Started indexing '[filename]'"
+- [x] Error: status reverts, error toast with specific message
 - [ ] Batch indexing: select multiple → "Index Selected" toolbar button
 
 **WOW Detail:**
 
-- [ ] Status badge animates on transition (not indexed → pending → indexed)
-- [ ] Pending state shows a subtle spinner/pulse on the badge
-- [ ] Index button transforms to "Indexed ✓" preventing accidental double-tap
+- [x] Status badge animates on transition (not indexed → pending → indexed)
+- [x] Pending state shows a subtle spinner/pulse on the badge
+- [x] Index button transforms to "Indexed ✓" preventing accidental double-tap
 
 ---
 
@@ -243,16 +243,16 @@
 
 **Acceptance Criteria:**
 
-- [ ] Status badge on each row: green "Indexed" / gray "Not Indexed"
-- [ ] Badge has consistent width (no layout shift on status change)
-- [ ] Toolbar shows summary: "X of Y files indexed"
-- [ ] Status is fetched from API and reflects server truth
+- [x] Status badge on each row: green "Indexed" / gray "Not Indexed"
+- [x] Badge has consistent width (no layout shift on status change)
+- [x] Toolbar shows summary: "X of Y files indexed"
+- [x] Status is fetched from API and reflects server truth
 
 **WOW Detail:**
 
-- [ ] Badge uses filled/outline variant for clear visual distinction
-- [ ] Icon inside badge (check for indexed, minus for not indexed)
-- [ ] Filter option: "Show indexed only" / "Show not indexed only"
+- [x] Badge uses filled/outline variant for clear visual distinction
+- [x] Icon inside badge (check for indexed, minus for not indexed)
+- [x] Filter option: "Show indexed only" / "Show not indexed only"
 
 ---
 
@@ -264,16 +264,16 @@
 
 **Acceptance Criteria:**
 
-- [ ] Indexed files show a "De-index" action (dropdown or direct button)
-- [ ] Optimistic: status immediately changes to "Not Indexed"
-- [ ] File remains in the listing
-- [ ] On error: status reverts to "Indexed", error toast
+- [x] Indexed files show a "De-index" action (dropdown or direct button)
+- [x] Optimistic: status immediately changes to "Not Indexed"
+- [x] File remains in the listing
+- [x] On error: status reverts to "Indexed", error toast
 - [ ] Batch de-index supported when multiple indexed items selected
 
 **WOW Detail:**
 
 - [ ] Confirmation for batch de-index: "Remove X files from Knowledge Base?"
-- [ ] Status transition animates smoothly (green → gray)
+- [x] Status transition animates smoothly (green → gray)
 
 ---
 

@@ -36,7 +36,9 @@ const STATUS_CONFIG = {
 } as const;
 
 export const StatusBadge = memo(function StatusBadge({ status }: StatusBadgeProps) {
-  const config = STATUS_CONFIG[status ?? 'none'];
+  // Fall back to 'none' for any status value not in the map (e.g. 'error', 'failed')
+  // that the API may return but isn't part of our documented ResourceStatus union.
+  const config = STATUS_CONFIG[status ?? 'none'] ?? STATUS_CONFIG.none;
   const Icon = config.icon;
 
   return (
