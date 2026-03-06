@@ -1,8 +1,9 @@
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { Check, Loader2, Trash2, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useActionButtonHandlers } from '@/hooks/useActionButtonHandlers';
 import { cn } from '@/lib/utils';
 
 import type { Resource, ResourceStatus } from '@/types/resource';
@@ -36,29 +37,15 @@ export const ActionButtons = memo(function ActionButtons({
   const isPending = status === 'pending';
   const isIndexed = status === 'indexed';
 
-  const handleIndex = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onIndex(resource);
-    },
-    [resource, onIndex],
-  );
-
-  const handleDeindex = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onDeindex(path);
-    },
-    [path, onDeindex],
-  );
-
-  const handleDelete = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onDelete(resourceId, name, path);
-    },
-    [resourceId, name, path, onDelete],
-  );
+  const { handleIndex, handleDeindex, handleDelete } = useActionButtonHandlers({
+    resourceId,
+    name,
+    path,
+    resource,
+    onIndex,
+    onDeindex,
+    onDelete,
+  });
 
   return (
     <div className="flex items-center justify-end gap-0.5">
