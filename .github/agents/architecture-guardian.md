@@ -150,6 +150,8 @@ Every file must follow:
 
 ## Output Format
 
+Write results to `docs/audits/architecture-<YYYY-MM-DD>.md`. Format:
+
 ```
 ## 📐 ARCHITECTURE AUDIT
 
@@ -160,24 +162,23 @@ Every file must follow:
 
 ### ❌ VIOLATIONS
 
-#### [ARCH-1] SRP: FileList.tsx is 280 lines
-📍 src/components/file-picker/FileList.tsx
-📏 280 lines — contains rendering, sorting, filtering, and selection logic
-✅ Fix: Extract sorting to useSortedResources hook, filtering to useFilteredResources,
-   selection to useSelection. FileList should only compose and render.
+#### [ARCH-1] SRP: ExampleComponent.tsx is 300 lines
+📍 src/components/file-picker/ExampleComponent.tsx
+📏 300 lines — contains rendering + data logic
+✅ Fix: Extract data logic to useExampleHook
 
 #### [ARCH-2] DIP: Direct fetch in component
-📍 src/components/file-picker/Toolbar.tsx:45
+📍 src/components/file-picker/SomeComponent.tsx:42
 ❌ import { apiClient } from '@/lib/api' — component depends on concrete API
-✅ Fix: Create useIndexResources() hook, import in Toolbar
+✅ Fix: Wrap in a custom hook
 
 ### 📊 SCORECARD
 
 | Principle | Status | Notes |
-|---|---|---|
-| SRP | ⚠️ | 2 components exceed 150 lines |
-| OCP | ✅ | Icon map pattern used |
-| LSP | ✅ | Discriminated union works |
-| ISP | ⚠️ | FileRow receives full Resource object |
-| DIP | ❌ | 1 component imports API directly |
+|---|---|---------|
+| SRP | ✅/⚠️/❌ | ... |
+| OCP | ✅/⚠️/❌ | ... |
+| LSP | ✅/⚠️/❌ | ... |
+| ISP | ✅/⚠️/❌ | ... |
+| DIP | ✅/⚠️/❌ | ... |
 ```

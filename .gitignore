@@ -28,6 +28,9 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# audit reports (local only, not for review)
+docs/audits/
 .pnpm-debug.log*
 
 # env files
