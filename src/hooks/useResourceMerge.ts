@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 
 import type { Resource, ResourceStatus } from '@/types/resource';
 
-type StatusFilter = 'all' | 'indexed' | 'not-indexed';
+export type StatusFilter = 'all' | 'indexed' | 'not-indexed';
 
 /** Indexing lifecycle priority — higher = further along. */
 function statusPriority(s: ResourceStatus): number {
