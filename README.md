@@ -276,7 +276,18 @@ Required variables (see `.env.example`):
 | `STACK_AI_EMAIL`             | Service account email                              |
 | `STACK_AI_PASSWORD`          | Service account password                           |
 
-> **Security**: These variables are only used in server-side API routes. They are never exposed to the client.
+Integration tests use a separate `TEST_*` prefix (see `.env.example`). If omitted, setup auto-bridges from `STACK_AI_*`:
+
+| Variable                 | Description                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| `TEST_EMAIL`             | Test account email (falls back to `STACK_AI_EMAIL`)                             |
+| `TEST_PASSWORD`          | Test account password (falls back to `STACK_AI_PASSWORD`)                       |
+| `TEST_SUPABASE_URL`      | Supabase auth URL (falls back to `STACK_AI_SUPABASE_URL`)                       |
+| `TEST_SUPABASE_ANON_KEY` | Supabase anon key (falls back to `STACK_AI_SUPABASE_ANON_KEY`)                  |
+| `TEST_API_BASE_URL`      | Working API URL (falls back to `STACK_AI_BASE_URL`)                             |
+| `TEST_API_BASE_URL_DOCS` | Documented API URL — used by ISS-2 failure-assertion tests (`api.stack-ai.com`) |
+
+> **Security**: All variables are only used in server-side API routes and test setup. They are never exposed to the client.
 
 ### 3. Run
 
