@@ -3,6 +3,7 @@
 import { AlertTriangle, Search } from 'lucide-react';
 
 import { ColumnHeaders } from '@/components/file-picker/ColumnHeaders';
+import { useDragSelect } from '@/hooks/useDragSelect';
 import { FileRow } from '@/components/file-picker/FileRow';
 import { FileListSkeleton } from '@/components/file-picker/FileListSkeleton';
 import { SearchBar } from '@/components/file-picker/SearchBar';
@@ -46,6 +47,8 @@ type FileListProps = {
   canBatchDeindex: boolean;
   canBatchDelete: boolean;
   hasSelectable: boolean;
+  onDragSelect: (ids: string[]) => void;
+  onClearSelection: () => void;
 };
 
 export function FileList({
@@ -82,7 +85,14 @@ export function FileList({
   canBatchDeindex,
   canBatchDelete,
   hasSelectable,
+  onDragSelect,
+  onClearSelection,
 }: FileListProps) {
+  const { containerRef, dragRect, handleMouseDown } = useDragSelect({
+    onSelect: onDragSelect,
+    onClearSelection,
+  });
+
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
@@ -209,7 +219,24 @@ export function FileList({
       )}
 
       {!isLoading && resources.length > 0 && (
-        <div className="transition-opacity duration-200">
+         
+        <div
+          ref={containerRef}
+          className="relative transition-opacity duration-200 select-none"
+          onMouseDown={handleMouseDown}
+        >
+          {dragRect && (
+            <div
+              className="absolute z-10 border border-primary/60 bg-primary/10 pointer-events-none rounded-sm"
+              style={{
+                left: dragRect.left,
+                top: dragRect.top,
+                width: dragRect.width,
+                height: dragRect.height,
+              }}
+              aria-hidden="true"
+            />
+          )}
           {resources.map((resource) => (
             <FileRow
               key={resource.resourceId}

@@ -118,6 +118,7 @@ export const FileRow = memo(function FileRow({
       <div
         role="row"
         tabIndex={0}
+        data-resource-id={resourceId}
         className={cn(
           'group grid grid-cols-[28px_1fr_100px_120px_136px] items-center gap-4 px-4 py-2.5',
           'border-b border-border/50 transition-[opacity,transform] duration-200',

@@ -66,6 +66,20 @@ export function useSelection(resourceIds: readonly string[], selectableIds: read
     lastToggledIndex.current = null;
   }, []);
 
+  /** Adds a set of IDs to the selection (used by drag-to-select). */
+  const selectRange = useCallback(
+    (ids: string[]) => {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        for (const id of ids) {
+          if (selectableSet.has(id)) next.add(id);
+        }
+        return next;
+      });
+    },
+    [selectableSet],
+  );
+
   const allSelected = selectableIds.length > 0 && selected.size === selectableIds.length;
   const someSelected = selected.size > 0 && !allSelected;
   const hasSelectable = selectableIds.length > 0;
@@ -74,6 +88,7 @@ export function useSelection(resourceIds: readonly string[], selectableIds: read
     selected,
     toggle,
     selectAll,
+    selectRange,
     clear,
     allSelected,
     someSelected,

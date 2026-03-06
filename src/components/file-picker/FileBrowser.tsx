@@ -79,6 +79,7 @@ export function FileBrowser() {
     selected,
     toggle: toggleSelect,
     selectAll,
+    selectRange,
     clear: clearSelection,
     allSelected,
     someSelected,
@@ -152,7 +153,7 @@ export function FileBrowser() {
         onBreadcrumbClick={handleBreadcrumbClickWithReset}
       />
 
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-y-scroll">
         <div className="flex items-center gap-1 px-4 py-2 border-b border-border">
           <span className="text-xs text-muted-foreground mr-1">Show:</span>
           {(['all', 'indexed', 'not-indexed'] as const).map((f) => (
@@ -204,6 +205,8 @@ export function FileBrowser() {
           canBatchDeindex={batch.canBatchDeindex}
           canBatchDelete={batch.canBatchDelete}
           hasSelectable={hasSelectable}
+          onDragSelect={selectRange}
+          onClearSelection={clearSelection}
         />
       </div>
     </div>
