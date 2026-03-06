@@ -113,7 +113,7 @@ These are the details that make an evaluator think "this person writes productio
 - [x] Breadcrumb shows ellipsis for deep paths with dropdown to expand
 - [x] Column headers are sortable with visual direction indicators (▲▼)
 - [x] "Select All" checkbox has three states: none/some/all (indeterminate state)
-- [ ] Right-click context menu on files (optional but impressive)
+- [x] Right-click context menu on files (optional but impressive)
 - [ ] Drag selection across multiple files (rubberband, optional)
 - [x] Keyboard shortcut: `/` or `Cmd+K` to focus search
 - [x] Empty state illustrations, not just text

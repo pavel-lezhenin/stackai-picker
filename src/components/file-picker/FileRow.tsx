@@ -3,6 +3,7 @@
 import { memo, useCallback } from 'react';
 
 import { ActionButtons } from '@/components/file-picker/ActionButtons';
+import { FileRowContextMenu } from '@/components/file-picker/FileRowContextMenu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { StatusBadge } from '@/components/file-picker/StatusBadge';
 import { cn } from '@/lib/utils';
@@ -102,83 +103,96 @@ export const FileRow = memo(function FileRow({
   );
 
   return (
-    <div
-      role="row"
-      tabIndex={0}
-      className={cn(
-        'group grid grid-cols-[28px_1fr_100px_120px_136px] items-center gap-4 px-4 py-2.5',
-        'border-b border-border/50 transition-[opacity,transform] duration-200',
-        'hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none',
-        'active:bg-primary/10',
-        isSelected && 'bg-primary/5',
-        isDeleting && 'opacity-0 scale-95 pointer-events-none',
-        isPendingDelete && 'opacity-60',
-      )}
-      onClick={handleRowClick}
-      onDoubleClick={handleDoubleClick}
-      onKeyDown={handleKeyDown}
-      aria-label={`${iconLabel}: ${name}`}
-      aria-selected={isSelected}
+    <FileRowContextMenu
+      name={name}
+      path={path}
+      resource={resource}
+      status={status}
+      isFolder={isFolder}
+      resourceId={resourceId}
+      onNavigate={isFolder ? onNavigate : undefined}
+      onIndex={onIndex}
+      onDeindex={onDeindex}
+      onDelete={onDelete}
     >
-      {/* Checkbox — expanded click area without changing layout */}
       <div
-        role="gridcell"
-        className="flex items-center -my-2.5 py-2.5 -mr-4 pr-4 -ml-2 pl-2 cursor-pointer"
+        role="row"
+        tabIndex={0}
+        className={cn(
+          'group grid grid-cols-[28px_1fr_100px_120px_136px] items-center gap-4 px-4 py-2.5',
+          'border-b border-border/50 transition-[opacity,transform] duration-200',
+          'hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none',
+          'active:bg-primary/10',
+          isSelected && 'bg-primary/5',
+          isDeleting && 'opacity-0 scale-95 pointer-events-none',
+          isPendingDelete && 'opacity-60',
+        )}
+        onClick={handleRowClick}
+        onDoubleClick={handleDoubleClick}
+        onKeyDown={handleKeyDown}
+        aria-label={`${iconLabel}: ${name}`}
+        aria-selected={isSelected}
       >
-        <Checkbox
-          checked={isSelected}
-          disabled={isPending}
-          tabIndex={-1}
-          className="pointer-events-none"
-          aria-label={`Select ${name}`}
-        />
-      </div>
-      {/* Name + Icon */}
-      {isFolder ? (
-        <div role="gridcell" className="flex items-center min-w-0">
-          <button
-            type="button"
-            className="flex items-center gap-3 min-w-0 -my-2.5 py-2.5 cursor-pointer hover:underline"
-            onClick={handleNavigate}
-          >
-            <Icon className="h-4 w-4 shrink-0 text-amber-500" aria-hidden="true" />
-            <span className="truncate text-sm font-semibold">
+        {/* Checkbox — expanded click area without changing layout */}
+        <div
+          role="gridcell"
+          className="flex items-center -my-2.5 py-2.5 -mr-4 pr-4 -ml-2 pl-2 cursor-pointer"
+        >
+          <Checkbox
+            checked={isSelected}
+            disabled={isPending}
+            tabIndex={-1}
+            className="pointer-events-none"
+            aria-label={`Select ${name}`}
+          />
+        </div>
+        {/* Name + Icon */}
+        {isFolder ? (
+          <div role="gridcell" className="flex items-center min-w-0">
+            <button
+              type="button"
+              className="flex items-center gap-3 min-w-0 -my-2.5 py-2.5 cursor-pointer hover:underline"
+              onClick={handleNavigate}
+            >
+              <Icon className="h-4 w-4 shrink-0 text-amber-500" aria-hidden="true" />
+              <span className="truncate text-sm font-semibold">
+                <HighlightedName name={name} query={searchHighlight} />
+              </span>
+            </button>
+          </div>
+        ) : (
+          <div role="gridcell" className="flex items-center gap-3 min-w-0">
+            <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <span className="truncate text-sm">
               <HighlightedName name={name} query={searchHighlight} />
             </span>
-          </button>
+          </div>
+        )}
+
+        {/* Status */}
+        <div role="gridcell">
+          <StatusBadge status={status} />
         </div>
-      ) : (
-        <div role="gridcell" className="flex items-center gap-3 min-w-0">
-          <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <span className="truncate text-sm">
-            <HighlightedName name={name} query={searchHighlight} />
-          </span>
+
+        {/* Modified Date */}
+        <div role="gridcell" className="text-xs text-muted-foreground">
+          {formatDate(modifiedAt)}
         </div>
-      )}
 
-      {/* Status */}
-      <div role="gridcell">
-        <StatusBadge status={status} />
+        <ActionButtons
+          resourceId={resourceId}
+          name={name}
+          path={path}
+          resource={resource}
+          status={status}
+          isFolder={isFolder}
+          isPendingDelete={isPendingDelete}
+          onIndex={onIndex}
+          onDeindex={onDeindex}
+          onDelete={onDelete}
+        />
       </div>
-
-      {/* Modified Date */}
-      <div role="gridcell" className="text-xs text-muted-foreground">
-        {formatDate(modifiedAt)}
-      </div>
-
-      <ActionButtons
-        resourceId={resourceId}
-        name={name}
-        path={path}
-        resource={resource}
-        status={status}
-        isFolder={isFolder}
-        isPendingDelete={isPendingDelete}
-        onIndex={onIndex}
-        onDeindex={onDeindex}
-        onDelete={onDelete}
-      />
-    </div>
+    </FileRowContextMenu>
   );
 });
 
