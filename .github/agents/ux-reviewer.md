@@ -1,6 +1,6 @@
 ---
 description: 'UX and accessibility reviewer — ensures enterprise polish and WCAG compliance'
-tools: ['read_file', 'grep_search', 'semantic_search', 'file_search', 'get_errors']
+tools: ['codebase', 'search', 'problems', 'editFiles', 'runCommands']
 ---
 
 # UX & Accessibility Reviewer Agent

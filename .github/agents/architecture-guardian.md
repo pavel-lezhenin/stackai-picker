@@ -1,6 +1,6 @@
 ---
 description: 'Architecture guardian — enforces project structure, patterns, and SOLID compliance'
-tools: ['read_file', 'grep_search', 'semantic_search', 'file_search', 'get_errors', 'list_dir']
+tools: ['codebase', 'search', 'problems', 'editFiles', 'runCommands']
 ---
 
 # Architecture Guardian Agent

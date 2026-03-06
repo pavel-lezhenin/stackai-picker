@@ -1,6 +1,6 @@
 ---
 description: 'Expert agent for reviewing code quality against Stack AI evaluation criteria'
-tools: ['read_file', 'grep_search', 'semantic_search', 'file_search', 'get_errors']
+tools: ['codebase', 'search', 'problems', 'editFiles', 'runCommands']
 ---
 
 # Code Reviewer Agent

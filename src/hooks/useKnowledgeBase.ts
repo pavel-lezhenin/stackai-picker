@@ -15,8 +15,8 @@ import type { PaginatedResponse } from '@/types/api';
 
 /**
  * Fetches all pages of KB resources with indexed status.
- * Polls every 3s while any resource is in "pending" status — stops automatically
- * once all resources reach a terminal state (indexed / resource).
+ * Polls every 1s while any resource is in "pending" status or the list is
+ * empty — stops automatically once all resources reach a terminal state.
  */
 export function useKBResources(kbId: string | undefined, resourcePath: string = '/') {
   // KB API requires resource_path to start with '/'
@@ -73,19 +73,12 @@ export function useCreateKB() {
      */
     mutationFn: (params: { connectionId: string; resources: Resource[] }) => {
       const connectionSourceIds = deduplicateForIndexing(params.resources);
+      // BFF owns indexing_params — client only sends resource identifiers
       return apiFetch<KnowledgeBase>('/knowledge-bases', {
         method: 'POST',
         body: JSON.stringify({
           connection_id: params.connectionId,
           connection_source_ids: connectionSourceIds,
-          indexing_params: {
-            ocr: false,
-            unstructured: true,
-            embedding_params: { embedding_model: 'text-embedding-ada-002', api_key: null },
-            chunker_params: { chunk_size: 1500, chunk_overlap: 500, chunker: 'sentence' },
-          },
-          org_level_role: null,
-          cron_job_id: null,
         }),
       });
     },

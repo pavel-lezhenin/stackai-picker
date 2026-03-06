@@ -1,16 +1,6 @@
 ---
 description: 'Agent for implementing file picker features following project conventions'
-tools:
-  [
-    'read_file',
-    'replace_string_in_file',
-    'create_file',
-    'run_in_terminal',
-    'grep_search',
-    'semantic_search',
-    'get_errors',
-    'multi_replace_string_in_file',
-  ]
+tools: ['codebase', 'search', 'problems', 'editFiles', 'runCommands']
 ---
 
 # Feature Builder Agent

@@ -1,15 +1,6 @@
 ---
 description: 'Agent for debugging and fixing issues in the file picker application'
-tools:
-  [
-    'read_file',
-    'replace_string_in_file',
-    'run_in_terminal',
-    'grep_search',
-    'get_errors',
-    'semantic_search',
-    'multi_replace_string_in_file',
-  ]
+tools: ['codebase', 'search', 'problems', 'editFiles', 'runCommands']
 ---
 
 # Debugger Agent

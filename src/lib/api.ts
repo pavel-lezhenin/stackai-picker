@@ -38,5 +38,8 @@ export async function apiFetch<T>(endpoint: string, options?: RequestInit): Prom
   }
 
   // BFF wraps all success responses in { data: T } envelope (see api.ts BffResponse type)
+  if (json === null || typeof json !== 'object' || !('data' in json)) {
+    throw new ApiError('Unexpected response shape from BFF', 500);
+  }
   return (json as { data: T }).data;
 }

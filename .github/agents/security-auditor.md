@@ -1,6 +1,6 @@
 ---
 description: 'Security audit agent — finds vulnerabilities before Stack AI reviewers do'
-tools: ['read_file', 'grep_search', 'semantic_search', 'file_search', 'get_errors']
+tools: ['codebase', 'search', 'problems', 'editFiles', 'runCommands']
 ---
 
 # Security Auditor Agent

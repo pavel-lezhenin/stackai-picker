@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
 import { useDeleteKBResource } from '@/hooks/useKnowledgeBase';
+import { DELETE_ANIMATION_MS } from '@/lib/constants';
 
 type DeleteTarget = {
   resourceId: string;
@@ -37,7 +38,7 @@ export function useDeleteFlow(kbId: string | undefined) {
     setDeletingId(target.resourceId);
 
     // Brief delay lets the exit animation play before the row disappears from DOM
-    await new Promise<void>((r) => setTimeout(r, 180));
+    await new Promise<void>((r) => setTimeout(r, DELETE_ANIMATION_MS));
     setDeletingId(null);
     setHiddenResourceIds((prev) => new Set([...prev, target.resourceId]));
 

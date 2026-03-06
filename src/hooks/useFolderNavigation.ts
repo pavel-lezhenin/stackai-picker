@@ -20,8 +20,13 @@ export function useFolderNavigation() {
 
   const currentFolder = folderStack[folderStack.length - 1];
 
-  const handleNavigate = useCallback((resourceId: string, name: string, folderPath: string) => {
-    setFolderStack((prev) => [...prev, { id: resourceId, name, path: folderPath }]);
+  const handleNavigate = useCallback((resourceId: string, name: string, _folderPath: string) => {
+    setFolderStack((prev) => {
+      const parentPath = prev[prev.length - 1].path;
+      // Build cumulative path so useKBResources queries the correct resource_path
+      const path = parentPath === '/' ? `/${name}` : `${parentPath}/${name}`;
+      return [...prev, { id: resourceId, name, path }];
+    });
   }, []);
 
   const handleBreadcrumbClick = useCallback((index: number) => {
