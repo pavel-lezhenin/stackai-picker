@@ -39,7 +39,7 @@ export function useFileBrowser() {
   } = useResources(connection?.connection_id, currentFolder.id);
 
   const indexing = useIndexing(connection?.connection_id, org?.org_id);
-  const { kbId, hasActiveJobs, getDisplayStatus } = indexing;
+  const { kbId, hasActiveJobs, getDisplayStatus, deindexedIds } = indexing;
 
   const deleteFlow = useDeleteFlow(kbId);
   const { deletingId, hiddenResourceIds } = deleteFlow;
@@ -49,8 +49,6 @@ export function useFileBrowser() {
   // Resolve submitted entries from KB poll data (runs on every kbResources change)
   useEffect(() => {
     if (kbResources.length > 0) {
-      console.log('[resolve] kbResources:', kbResources.map(r => `${r.name}(${r.type}:${r.status})`));
-      console.log('[resolve] submittedIds:', [...indexing.submittedIds.entries()].map(([id, e]) => `${id}→${e.name}(${e.status})`));
       indexing.resolveFromKBData(kbResources);
     }
   }, [kbResources, indexing]);
@@ -63,7 +61,13 @@ export function useFileBrowser() {
   }, [hasActiveJobs, indexing]);
 
   const { filteredResources, resources, indexedCount, statusFilter, setStatusFilter, resetFilter } =
-    useResourceMerge(connectionResources, kbResources, hiddenResourceIds, getDisplayStatus);
+    useResourceMerge(
+      connectionResources,
+      kbResources,
+      hiddenResourceIds,
+      getDisplayStatus,
+      deindexedIds,
+    );
 
   const {
     sortedResources,

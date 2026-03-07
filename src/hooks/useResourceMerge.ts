@@ -18,6 +18,7 @@ export function useResourceMerge(
   kbResources: Resource[],
   hiddenResourceIds: ReadonlySet<string>,
   getDisplayStatus: (resourceId: string) => ResourceStatus,
+  deindexedIds: ReadonlySet<string> = new Set(),
 ) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
@@ -29,14 +30,24 @@ export function useResourceMerge(
       .filter((r) => !hiddenResourceIds.has(r.resourceId))
       .map((r) => {
         const serverStatus = statusById.get(r.resourceId) ?? statusByName.get(r.name) ?? r.status;
-        // Server confirmed done always wins — no local override can contradict it
-        if (serverStatus === 'indexed' || serverStatus === 'parsed') return { ...r, status: 'indexed' as const };
+
+        // File was just deindexed — KB cache is stale, ignore server status entirely.
+        // Engine entry is already deleted, so only a fresh engine entry (re-index) can override.
+        if (deindexedIds.has(r.resourceId)) {
+          const displayStatus = getDisplayStatus(r.resourceId);
+          return { ...r, status: displayStatus };
+        }
+
+        // Server confirmed done always wins (confirmed by KB)
+        if (serverStatus === 'indexed' || serverStatus === 'parsed') {
+          return { ...r, status: 'indexed' as const };
+        }
 
         const displayStatus = getDisplayStatus(r.resourceId);
         const status = displayStatus ?? serverStatus;
         return { ...r, status };
       });
-  }, [connectionResources, kbResources, hiddenResourceIds, getDisplayStatus]);
+  }, [connectionResources, kbResources, hiddenResourceIds, getDisplayStatus, deindexedIds]);
 
   const indexedCount = useMemo(
     () => resources.filter((r) => r.status === 'indexed').length,
