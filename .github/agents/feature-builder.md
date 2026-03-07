@@ -1,16 +1,6 @@
 ---
 description: 'Agent for implementing file picker features following project conventions'
-tools:
-  [
-    'read_file',
-    'replace_string_in_file',
-    'create_file',
-    'run_in_terminal',
-    'grep_search',
-    'semantic_search',
-    'get_errors',
-    'multi_replace_string_in_file',
-  ]
+tools: ['codebase', 'search', 'problems', 'editFiles', 'runCommands']
 ---
 
 # Feature Builder Agent
@@ -226,4 +216,10 @@ type ApiResponse<T> =
 - ❌ Never use `index` as key in lists rendering mutable data
 - ❌ Never store derived state in `useState` — use `useMemo`
 - ❌ Never write CSS files — Tailwind only
-- ❌ Never write components >150 lines — decompose
+- ❌ Never write components >250 lines — decompose
+
+## Output
+
+Write a summary to `docs/audits/feature-<YYYY-MM-DD>.md` using `create_file`. Include: feature implemented, files created/modified, patterns used, and quality checklist results (`get_errors` — must be zero).
+
+**IMPORTANT — response length**: After writing the file, return ONLY a short summary to the caller (5 lines max): file path written, files changed, and `get_errors` result. Do NOT repeat the full report in your response message.

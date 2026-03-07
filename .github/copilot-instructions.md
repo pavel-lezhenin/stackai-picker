@@ -54,7 +54,7 @@ src/
 
 ### SOLID Principles (Enforced, Not Optional)
 
-- **Single Responsibility**: Each component does ONE thing. FileRow renders a row. FileList renders the list. Toolbar handles actions. <100 lines ideal, <150 max.
+- **Single Responsibility**: Each component does ONE thing. FileRow renders a row. FileList renders the list. Toolbar handles actions. <160 lines soft signal, >250 hard trigger.
 - **Open/Closed**: File type icons use a Map/Record — adding a type adds an entry, changes zero components. Use composition over modification.
 - **Liskov Substitution**: `Resource = FileResource | FolderResource` — components work with both via discriminated union, never type-checking hacks.
 - **Interface Segregation**: Props interfaces are minimal. FileRow gets `name`, `type`, `status` — not the entire Resource blob.

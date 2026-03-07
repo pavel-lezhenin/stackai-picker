@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+import { buildBreadcrumbSegments } from '@/lib/buildBreadcrumbSegments';
+
 import type { BreadcrumbEntry } from '@/hooks/useFolderNavigation';
 
 type BreadcrumbBarProps = {
@@ -25,32 +27,12 @@ type BreadcrumbBarProps = {
   onBreadcrumbClick: (index: number) => void;
 };
 
-// Show at most this many segments before collapsing middle ones into "..."
-const MAX_VISIBLE_CRUMBS = 4;
-
-type SegmentEntry = BreadcrumbEntry & { overflow?: BreadcrumbEntry[] };
-
-function buildSegments(stack: BreadcrumbEntry[]): SegmentEntry[] {
-  if (stack.length <= MAX_VISIBLE_CRUMBS) return stack;
-  const collapsed = stack.slice(1, stack.length - 2);
-  return [
-    stack[0],
-    { id: '__overflow__', name: '...', path: '', overflow: collapsed },
-    ...stack.slice(stack.length - 2),
-  ];
-}
-
 export const BreadcrumbBar = memo(function BreadcrumbBar({
   folderStack,
   onBack,
   onBreadcrumbClick,
 }: BreadcrumbBarProps) {
-  const segments = buildSegments(folderStack);
-
-  const findStackIndex = useCallback(
-    (entryId: string | undefined) => folderStack.findIndex((f) => f.id === entryId),
-    [folderStack],
-  );
+  const segments = buildBreadcrumbSegments(folderStack);
 
   return (
     <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
@@ -70,7 +52,7 @@ export const BreadcrumbBar = memo(function BreadcrumbBar({
           {segments.map((entry, index) => {
             const isLast = index === segments.length - 1;
             const isOverflow = entry.id === '__overflow__';
-            const stackIndex = findStackIndex(entry.id);
+            const stackIndex = folderStack.findIndex((f) => f.id === entry.id);
 
             return (
               <span key={entry.id ?? 'root'} className="contents">
@@ -87,7 +69,7 @@ export const BreadcrumbBar = memo(function BreadcrumbBar({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start">
                         {entry.overflow?.map((o) => {
-                          const oIndex = findStackIndex(o.id);
+                          const oIndex = folderStack.findIndex((f) => f.id === o.id);
                           return (
                             <DropdownMenuItem key={o.id} onClick={() => onBreadcrumbClick(oIndex)}>
                               {o.name}

@@ -1,8 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 
+import { SEARCH_DEBOUNCE_MS } from '@/lib/constants';
+
 import type { Resource } from '@/types/resource';
 
-export type SortField = 'name' | 'modified';
+export type SortField = 'name' | 'status' | 'modified';
 export type SortDirection = 'asc' | 'desc';
 export type SortConfig = { field: SortField; direction: SortDirection };
 
@@ -23,7 +25,7 @@ export function useSortAndFilter(resources: Resource[]) {
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => setDebouncedQuery(value), 200);
+    debounceRef.current = setTimeout(() => setDebouncedQuery(value), SEARCH_DEBOUNCE_MS);
   }, []);
 
   const clearSearch = useCallback(() => {
@@ -56,6 +58,25 @@ export function useSortAndFilter(resources: Resource[]) {
 
       if (sort.field === 'name') {
         return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) * dir;
+      }
+
+      if (sort.field === 'status') {
+        // Order: not-indexed → error → pending → indexed/parsed
+        const rank = (r: Resource) => {
+          switch (r.status) {
+            case 'indexed':
+            case 'parsed':
+              return 3;
+            case 'pending':
+              return 2;
+            case 'error':
+              return 1;
+            default:
+              return 0;
+          }
+        };
+        const diff = rank(a) - rank(b);
+        return (diff || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })) * dir;
       }
 
       // Modified date — nulls go last

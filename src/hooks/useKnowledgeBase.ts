@@ -13,46 +13,67 @@ import type { PaginatedResponse } from '@/types/api';
 
 // --- List Knowledge Base Resources ---
 
+/** Fetches KB resources at a path, paginates, then recurses into directories. */
+async function fetchKBResourcesRecursive(
+  kbId: string,
+  resourcePath: string,
+): Promise<KBResource[]> {
+  const all: KBResource[] = [];
+  let cursor: string | null = null;
+
+  do {
+    const params = new URLSearchParams({ resource_path: resourcePath });
+    if (cursor) params.set('cursor', cursor);
+    const page = await apiFetch<PaginatedResponse<KBResource>>(
+      `/knowledge-bases/${kbId}/resources?${params}`,
+    );
+    all.push(...page.data);
+    cursor = page.next_cursor ?? null;
+  } while (cursor);
+
+  // Recurse into directories to get nested files
+  const dirs = all.filter((r) => r.inode_type === 'directory');
+  const nested = await Promise.all(
+    dirs.map((d) => {
+      const name = d.inode_path.path.split('/').pop() ?? d.inode_path.path;
+      const subPath = resourcePath === '/' ? `/${name}` : `${resourcePath}/${name}`;
+      return fetchKBResourcesRecursive(kbId, subPath);
+    }),
+  );
+
+  return [...all, ...nested.flat()];
+}
+
 /**
  * Fetches all pages of KB resources with indexed status.
- * Polls every 3s while any resource is in "pending" status — stops automatically
- * once all resources reach a terminal state (indexed / resource).
+ * Polls every 1s while any resource is in "pending" status or the list is
+ * empty — stops automatically once all resources reach a terminal state.
  */
-export function useKBResources(kbId: string | undefined, resourcePath: string = '/') {
+export function useKBResources(
+  kbId: string | undefined,
+  resourcePath: string = '/',
+  hasActiveJobs: boolean = false,
+) {
   // KB API requires resource_path to start with '/'
   const normalizedPath = resourcePath.startsWith('/') ? resourcePath : `/${resourcePath}`;
   return useQuery({
     queryKey: resourceKeys.kbResourceList(kbId ?? '', normalizedPath),
     queryFn: async (): Promise<KBResource[]> => {
-      const all: KBResource[] = [];
-      let cursor: string | null = null;
-
-      do {
-        const params = new URLSearchParams({ resource_path: normalizedPath });
-        if (cursor) params.set('cursor', cursor);
-
-        const page = await apiFetch<PaginatedResponse<KBResource>>(
-          `/knowledge-bases/${kbId}/resources?${params}`,
-        );
-        all.push(...page.data);
-        cursor = page.next_cursor ?? null;
-      } while (cursor);
-
-      return all;
+      return fetchKBResourcesRecursive(kbId!, normalizedPath);
     },
     enabled: !!kbId,
     staleTime: 5 * 60 * 1000,
     // Auto-poll while resources are being indexed.
-    // Also poll when the list is empty — the KB may not list resources immediately
-    // after sync/trigger fires (async server-side processing takes a moment).
-    // Stop ONLY when every resource has reached 'indexed' — checking for 'pending'
-    // alone misses undocumented transitional states the API may return (e.g. 'resource',
-    // 'queued', 'processing'). This covers the full documented + undocumented lifecycle.
+    // Guard: only poll on empty data when there are active indexing jobs —
+    // prevents infinite polling on paths that will never get KB resources.
+    // Stop when every resource has reached 'indexed'.
     refetchInterval: (query) => {
       const data = query.state.data;
       if (!data) return false;
-      if (data.length === 0) return 1000;
-      return data.every((r) => r.status === 'indexed') ? false : 1000;
+      if (data.length === 0) return hasActiveJobs ? 1000 : false;
+      const files = data.filter((r) => r.inode_type === 'file');
+      if (files.length === 0) return hasActiveJobs ? 1000 : false;
+      return files.every((r) => r.status === 'indexed' || r.status === 'parsed') ? false : 1000;
     },
     select: (data): Resource[] =>
       data.map(toResource).sort((a, b) => {
@@ -73,19 +94,12 @@ export function useCreateKB() {
      */
     mutationFn: (params: { connectionId: string; resources: Resource[] }) => {
       const connectionSourceIds = deduplicateForIndexing(params.resources);
+      // BFF owns indexing_params — client only sends resource identifiers
       return apiFetch<KnowledgeBase>('/knowledge-bases', {
         method: 'POST',
         body: JSON.stringify({
           connection_id: params.connectionId,
           connection_source_ids: connectionSourceIds,
-          indexing_params: {
-            ocr: false,
-            unstructured: true,
-            embedding_params: { embedding_model: 'text-embedding-ada-002', api_key: null },
-            chunker_params: { chunk_size: 1500, chunk_overlap: 500, chunker: 'sentence' },
-          },
-          org_level_role: null,
-          cron_job_id: null,
         }),
       });
     },
@@ -157,55 +171,6 @@ export function useDeleteKBResource(kbId: string | undefined) {
     onSuccess: (_data, resourcePath) => {
       const name = resourcePath.split('/').pop() ?? resourcePath;
       toast.success(`Removed '${name}' from Knowledge Base`);
-    },
-  });
-}
-
-// --- Index Resources (create KB + trigger sync in one shot) ---
-
-/**
- * Creates a new Knowledge Base with the given resources and immediately triggers
- * a sync. Returns the KB object (including knowledge_base_id) on success.
- *
- * Each call creates a NEW KB — to keep previously indexed items, callers must
- * include those resources in the `resources` array alongside new selections.
- */
-export function useIndexResources() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (params: { connectionId: string; resources: Resource[]; orgId: string }) => {
-      const connectionSourceIds = deduplicateForIndexing(params.resources);
-
-      const kb = await apiFetch<KnowledgeBase>('/knowledge-bases', {
-        method: 'POST',
-        body: JSON.stringify({
-          connection_id: params.connectionId,
-          connection_source_ids: connectionSourceIds,
-        }),
-      });
-
-      // Fire-and-forget: don't await sync — it starts a background job anyway.
-      // Waiting for the response adds 1-3s to mutation time with zero benefit;
-      // the polling in useKBResources picks up status changes regardless.
-      const qs = new URLSearchParams({ org_id: params.orgId });
-      apiFetch<unknown>(`/knowledge-bases/${kb.knowledge_base_id}/sync?${qs}`, {
-        method: 'POST',
-      }).catch(() => {
-        // Sync failure is non-fatal here — the KB was created successfully.
-        // The user will see resources stuck in 'pending' and can retry.
-      });
-
-      return kb;
-    },
-
-    onSuccess: () => {
-      // Force immediate refetch of KB resources instead of waiting for next poll cycle
-      queryClient.invalidateQueries({ queryKey: resourceKeys.kbResources() });
-    },
-
-    onError: (error: Error) => {
-      toast.error(`Failed to index: ${error.message}`);
     },
   });
 }

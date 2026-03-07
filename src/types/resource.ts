@@ -55,7 +55,19 @@ export type Connection = z.infer<typeof ConnectionSchema>;
 // --- Internal UI shapes ---
 
 export type ResourceType = 'file' | 'folder';
-export type ResourceStatus = 'indexed' | 'pending' | 'resource' | null;
+export type ResourceStatus = 'indexed' | 'parsed' | 'pending' | 'resource' | 'error' | null;
+
+/** Tracks a resource submitted for indexing (keyed by resourceId, never by name). */
+export type SubmittedEntry = {
+  name: string;
+  status: 'pending' | 'indexed' | 'error';
+  type: ResourceType;
+  /** ID of the immediate parent folder (used for subfolder status derivation). */
+  parentId: string;
+  /** The root resource (folder or file) the user clicked "Index" on. */
+  jobRootId: string;
+  submittedAt: number;
+};
 
 export type Resource = {
   resourceId: string;
@@ -81,6 +93,8 @@ export function mapInodeType(inodeType: 'directory' | 'file'): ResourceType {
 
 /** Transform raw API resource into internal Resource shape */
 export function toResource(raw: ConnectionResource | KBResource): Resource {
+  // The Zod schema accepts `string | null` for status to tolerate undocumented API values;
+  // we cast to ResourceStatus here — any unknown value falls back gracefully in StatusBadge.
   const status = raw.status as ResourceStatus;
   return {
     resourceId: raw.resource_id,

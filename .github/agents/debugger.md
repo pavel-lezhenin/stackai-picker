@@ -1,15 +1,6 @@
 ---
 description: 'Agent for debugging and fixing issues in the file picker application'
-tools:
-  [
-    'read_file',
-    'replace_string_in_file',
-    'run_in_terminal',
-    'grep_search',
-    'get_errors',
-    'semantic_search',
-    'multi_replace_string_in_file',
-  ]
+tools: ['codebase', 'search', 'problems', 'editFiles', 'runCommands']
 ---
 
 # Debugger Agent
@@ -92,3 +83,9 @@ After every fix, verify:
 - [ ] Loading/error states still work correctly
 - [ ] Optimistic updates still roll back on error
 - [ ] Fix doesn't introduce new CLS (layout shift)
+
+## Output
+
+Write results to `docs/audits/debug-<YYYY-MM-DD>.md` using `create_file`. Include: bug description, root cause, minimal fix applied, files changed, and verification result (`get_errors` output).
+
+**IMPORTANT — response length**: After writing the file, return ONLY a short summary to the caller (5 lines max): file path written, root cause in one sentence, files changed, and `get_errors` result. Do NOT repeat the full report in your response message.

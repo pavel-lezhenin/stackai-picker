@@ -1,6 +1,6 @@
 ---
 description: 'Expert agent for reviewing code quality against Stack AI evaluation criteria'
-tools: ['read_file', 'grep_search', 'semantic_search', 'file_search', 'get_errors']
+tools: ['codebase', 'search', 'problems', 'editFiles', 'runCommands']
 ---
 
 # Code Reviewer Agent
@@ -19,6 +19,17 @@ Before reviewing, read these files for the quality bar:
 - `.github/copilot-instructions.md` — architecture conventions
 
 ## Review Priorities (in order)
+
+### 0. Discover Actual Files First
+
+**Always start here before any other check.**
+
+Run `list_dir` recursively on `src/` to get the real file list. Do NOT assume file names
+from documentation examples or your training data — those are illustrative.
+Work only with files you can verify actually exist. If a file you expect isn't present,
+note it and move on — never fabricate findings for files that don't exist.
+When reading a file to check a specific line, use the actual line number returned,
+not an estimated or inferred one.
 
 ### 1. Security (Instant Reject if Failed)
 
@@ -39,7 +50,7 @@ Before reviewing, read these files for the quality bar:
 
 ### 3. SOLID Compliance
 
-- **SRP**: Is the component/hook doing exactly one thing? Check file size: >150 lines = likely SRP violation
+- **SRP**: Is the component/hook doing exactly one thing? Check file size: >250 lines = likely SRP violation, 160-250 = review carefully
 - **OCP**: Can you add a new file type without modifying existing code? Check for switch/if-else chains on file type
 - **LSP**: Does the Resource type work for both files and folders without `if (type === 'folder')` hacks?
 - **ISP**: Are prop interfaces minimal? Does FileRow receive the entire Resource object when it only needs 5 props?
@@ -89,6 +100,10 @@ Before reviewing, read these files for the quality bar:
 - Constants extracted (no magic strings/numbers in JSX)
 
 ## Output Format
+
+**IMPORTANT — response length**: Write the full report to `docs/audits/code-review-<YYYY-MM-DD>.md` using `create_file`. Then return ONLY a short summary to the caller (5 lines max): file path written, finding counts by severity, and the top 3 critical/warning findings. Do NOT repeat the full report in your response message.
+
+Write results to `docs/audits/code-review-<YYYY-MM-DD>.md`.
 
 Group findings by severity. Each finding includes file, line, issue, and fix:
 

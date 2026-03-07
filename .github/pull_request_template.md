@@ -17,7 +17,7 @@
 - [ ] No `any` types introduced
 - [ ] No `console.log` left in production code
 - [ ] No secrets or credentials in committed files
-- [ ] Components follow SRP (< 150 lines)
+- [ ] Components follow SRP (< 160 lines soft signal)
 - [ ] API responses validated with Zod at boundaries
 - [ ] Optimistic updates have rollback on error
 - [ ] Tested manually in browser

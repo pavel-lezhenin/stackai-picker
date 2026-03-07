@@ -12,13 +12,19 @@ export class ApiError extends Error {
 
 /** Typed fetch wrapper for BFF API routes. Expects `{ data: T }` envelope. */
 export async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-    ...options,
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+      ...options,
+    });
+  } catch {
+    throw new ApiError('Connection lost — check your internet and try again', 0);
+  }
 
   const json: unknown = await response.json();
 
@@ -32,5 +38,8 @@ export async function apiFetch<T>(endpoint: string, options?: RequestInit): Prom
   }
 
   // BFF wraps all success responses in { data: T } envelope (see api.ts BffResponse type)
+  if (json === null || typeof json !== 'object' || !('data' in json)) {
+    throw new ApiError('Unexpected response shape from BFF', 500);
+  }
   return (json as { data: T }).data;
 }

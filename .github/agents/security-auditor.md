@@ -1,6 +1,6 @@
 ---
 description: 'Security audit agent — finds vulnerabilities before Stack AI reviewers do'
-tools: ['read_file', 'grep_search', 'semantic_search', 'file_search', 'get_errors']
+tools: ['codebase', 'search', 'problems', 'editFiles', 'runCommands']
 ---
 
 # Security Auditor Agent
@@ -72,6 +72,10 @@ A single security flaw in a take-home task = instant rejection.
 - [ ] **No defaults for secrets**: Code doesn't have fallback values for credentials (`process.env.PASSWORD || 'admin'`)
 
 ## Output Format
+
+**IMPORTANT — response length**: Write the full report to `docs/audits/security-<YYYY-MM-DD>.md` using `create_file`. Then return ONLY a short summary to the caller (5 lines max): file path written, critical/warning/pass counts, and any critical findings. Do NOT repeat the full report in your response message.
+
+Write results to `docs/audits/security-<YYYY-MM-DD>.md`.
 
 ```
 ## 🔴 CRITICAL — Must Fix (Exploitable Vulnerability)

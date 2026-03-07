@@ -1,5 +1,18 @@
 import { AuthResponseSchema } from '@/types/api';
 
+const REQUIRED_ENV = [
+  'STACK_AI_SUPABASE_URL',
+  'STACK_AI_SUPABASE_ANON_KEY',
+  'STACK_AI_EMAIL',
+  'STACK_AI_PASSWORD',
+  'STACK_AI_BASE_URL',
+] as const;
+
+for (const key of REQUIRED_ENV) {
+  if (!process.env[key]) throw new Error(`Missing required env var: ${key}`);
+}
+
+// Safe to assert — the loop above guarantees all are defined
 const SUPABASE_URL = process.env.STACK_AI_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.STACK_AI_SUPABASE_ANON_KEY!;
 const STACK_AI_EMAIL = process.env.STACK_AI_EMAIL!;
