@@ -58,7 +58,9 @@ export function FileBrowser() {
       />
 
       <div className="flex-1 overflow-y-scroll">
-        <StatusFilterBar value={statusFilter} onChange={setStatusFilter} />
+        {!isLoading && !isError && sortedResources.length > 0 && (
+          <StatusFilterBar value={statusFilter} onChange={setStatusFilter} />
+        )}
         <FileList
           resources={sortedResources}
           isLoading={isLoading}

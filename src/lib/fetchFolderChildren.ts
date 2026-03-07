@@ -31,6 +31,9 @@ export async function fetchFolderChildren(
     ...toResource(raw),
     parentId: folderId,
   }));
+  // Intentional: unbounded recursion is acceptable here — Google Drive hierarchies
+  // in this use-case are shallow (< 5 levels). A depth limit or concurrency throttle
+  // would add complexity without real benefit for this scope.
   const subfolders = resources.filter((r) => r.type === 'folder');
   const nested = await Promise.all(
     subfolders.map((sf) => fetchFolderChildren(connectionId, sf.resourceId)),

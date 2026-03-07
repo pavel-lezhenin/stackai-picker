@@ -55,6 +55,9 @@ export function useDeleteFlow(kbId: string | undefined) {
     });
   }, [deleteTarget, deleteMutation]);
 
+  // Intentional: individual mutate() calls per item. Each deletion has its own
+  // optimistic hide + independent rollback on error — a single mutateAsync/Promise.all
+  // would make rollback all-or-nothing, worse UX for partial failures.
   const handleBatchDelete = useCallback(
     (items: { resourceId: string; path: string }[]) => {
       for (const item of items) {

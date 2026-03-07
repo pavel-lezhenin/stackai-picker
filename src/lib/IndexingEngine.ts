@@ -217,7 +217,9 @@ export class IndexingEngine {
     this._allSubmittedResources.delete(resourceId);
     this._deindexedIds.add(resourceId);
 
-    // If this was a folder job root, remove all children that belong to it
+    // Intentional: deleting from a Map during for..of is safe per ES2015 spec.
+    // All children share the same jobRootId (set to the folder root at submission),
+    // so this single pass catches every descendant regardless of nesting depth.
     for (const [id, entry] of this._entries) {
       if (entry.jobRootId === resourceId) {
         this._entries.delete(id);

@@ -188,11 +188,13 @@ export function useIndexing(connectionId: string | undefined, orgId: string | un
   /** Public API: enqueues resources for indexing. Multiple rapid calls are serialized. */
   const handleIndex = useCallback(
     (resources: Resource[], kbResources: Resource[]) => {
-      // Show pending immediately
+      // Show pending immediately (optimistic UI feedback)
       engineRef.current.markPending(resources);
       syncState();
 
-      // Chain onto queue — each job waits for the previous one
+      // Intentional: markPending is called again inside executeIndex to reset
+      // submittedAt timestamp to actual API call time, so the 60s timeout is
+      // measured from execution, not from user click (which may be queued).
       queueRef.current = queueRef.current.then(() => executeIndex(resources, kbResources));
     },
     [executeIndex, syncState],

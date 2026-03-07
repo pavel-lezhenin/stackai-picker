@@ -61,8 +61,20 @@ export function useSortAndFilter(resources: Resource[]) {
       }
 
       if (sort.field === 'status') {
-        // Order: not-indexed (null/resource) → pending → indexed
-        const rank = (r: Resource) => (r.status === 'indexed' ? 2 : r.status === 'pending' ? 1 : 0);
+        // Order: not-indexed → error → pending → indexed/parsed
+        const rank = (r: Resource) => {
+          switch (r.status) {
+            case 'indexed':
+            case 'parsed':
+              return 3;
+            case 'pending':
+              return 2;
+            case 'error':
+              return 1;
+            default:
+              return 0;
+          }
+        };
         const diff = rank(a) - rank(b);
         return (diff || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })) * dir;
       }

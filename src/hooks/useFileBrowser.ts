@@ -46,19 +46,21 @@ export function useFileBrowser() {
 
   const { data: kbResources = [] } = useKBResources(kbId, '/', hasActiveJobs);
 
+  const { resolveFromKBData, resolveTimeouts } = indexing;
+
   // Resolve submitted entries from KB poll data (runs on every kbResources change)
   useEffect(() => {
     if (kbResources.length > 0) {
-      indexing.resolveFromKBData(kbResources);
+      resolveFromKBData(kbResources);
     }
-  }, [kbResources, indexing]);
+  }, [kbResources, resolveFromKBData]);
 
   // Periodic timeout check for entries the user never navigated to
   useEffect(() => {
     if (!hasActiveJobs) return;
-    const timer = setInterval(indexing.resolveTimeouts, 5000);
+    const timer = setInterval(resolveTimeouts, 5000);
     return () => clearInterval(timer);
-  }, [hasActiveJobs, indexing]);
+  }, [hasActiveJobs, resolveTimeouts]);
 
   const { filteredResources, resources, indexedCount, statusFilter, setStatusFilter, resetFilter } =
     useResourceMerge(
