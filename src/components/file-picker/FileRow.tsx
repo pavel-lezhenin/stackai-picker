@@ -143,6 +143,7 @@ export const FileRow = memo(function FileRow({
           resource={resource}
           status={status}
           isFolder={isFolder}
+          isSelected={isSelected}
           isPendingDelete={isPendingDelete}
           onIndex={onIndex}
           onDeindex={onDeindex}

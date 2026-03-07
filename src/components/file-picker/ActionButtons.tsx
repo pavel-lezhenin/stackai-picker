@@ -15,6 +15,7 @@ type ActionButtonsProps = {
   resource: Resource;
   status: ResourceStatus;
   isFolder: boolean;
+  isSelected?: boolean;
   isPendingDelete?: boolean;
   onIndex: (resource: Resource) => void;
   onDeindex: (resourceId: string, path: string) => void;
@@ -28,6 +29,7 @@ export const ActionButtons = memo(function ActionButtons({
   resource,
   status,
   isFolder,
+  isSelected = false,
   isPendingDelete = false,
   onIndex,
   onDeindex,
@@ -55,7 +57,10 @@ export const ActionButtons = memo(function ActionButtons({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 px-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              className={cn(
+                'h-7 px-2 text-xs text-muted-foreground transition-opacity cursor-pointer',
+                isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+              )}
               onClick={handleIndex}
               aria-label={`Index ${name}`}
             >
@@ -120,13 +125,16 @@ export const ActionButtons = memo(function ActionButtons({
 
       {/* Delete — fixed dimensions prevent CLS when status changes */}
       <div className="w-8 h-8 shrink-0">
-        {!isFolder && isIndexed && (
+        {isIndexed && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                className={cn(
+                  'h-8 w-8 transition-opacity cursor-pointer',
+                  isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                )}
                 onClick={handleDelete}
                 disabled={isPendingDelete}
                 aria-label={`Remove ${name} from listing`}

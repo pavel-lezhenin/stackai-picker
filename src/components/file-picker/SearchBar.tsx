@@ -39,7 +39,7 @@ export function SearchBar({ searchQuery, isLoading, onClear, onChange }: SearchB
   }, []);
 
   return (
-    <div className="flex items-center gap-2 px-4 h-10 border-b border-border">
+    <div className="flex items-center gap-2 px-4 h-10">
       <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
       <input
         ref={inputRef}

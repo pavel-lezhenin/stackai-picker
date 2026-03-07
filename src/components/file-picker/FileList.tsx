@@ -9,6 +9,7 @@ import { FileRowsCanvas } from '@/components/file-picker/FileRowsCanvas';
 import { FileListSkeleton } from '@/components/file-picker/FileListSkeleton';
 import { SearchBar } from '@/components/file-picker/SearchBar';
 import { SelectionToolbar } from '@/components/file-picker/SelectionToolbar';
+import { cn } from '@/lib/utils';
 
 import type { SortConfig, SortField } from '@/hooks/useSortAndFilter';
 import type { Resource } from '@/types/resource';
@@ -97,25 +98,40 @@ export function FileList({
   }
 
   return (
-    <div role="grid" aria-label="File list">
-      {selectionCount > 0 ? (
-        <SelectionToolbar
-          selectionCount={selectionCount}
-          canBatchIndex={canBatchIndex}
-          canBatchDeindex={canBatchDeindex}
-          canBatchDelete={canBatchDelete}
-          onBatchIndex={onBatchIndex}
-          onBatchDeindex={onBatchDeindex}
-          onBatchDelete={onBatchDelete}
-        />
-      ) : (
-        <SearchBar
-          searchQuery={searchQuery}
-          isLoading={isLoading}
-          onChange={onSearchChange}
-          onClear={onClearSearch}
-        />
-      )}
+    <div role="grid" aria-label="File list" className="flex flex-col flex-1">
+      {/* Both bars are always mounted to prevent layout shift on swap.
+          CSS visibility + pointer-events toggle instead of conditional render. */}
+      <div className="relative h-10 border-b border-border">
+        <div
+          className={cn(
+            'absolute inset-0 transition-opacity duration-150',
+            selectionCount > 0 ? 'opacity-0 pointer-events-none' : 'opacity-100',
+          )}
+        >
+          <SearchBar
+            searchQuery={searchQuery}
+            isLoading={isLoading}
+            onChange={onSearchChange}
+            onClear={onClearSearch}
+          />
+        </div>
+        <div
+          className={cn(
+            'absolute inset-0 transition-opacity duration-150',
+            selectionCount === 0 ? 'opacity-0 pointer-events-none' : 'opacity-100',
+          )}
+        >
+          <SelectionToolbar
+            selectionCount={selectionCount}
+            canBatchIndex={canBatchIndex}
+            canBatchDeindex={canBatchDeindex}
+            canBatchDelete={canBatchDelete}
+            onBatchIndex={onBatchIndex}
+            onBatchDeindex={onBatchDeindex}
+            onBatchDelete={onBatchDelete}
+          />
+        </div>
+      </div>
 
       <ColumnHeaders
         sort={sort}
