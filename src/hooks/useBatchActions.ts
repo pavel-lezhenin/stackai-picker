@@ -42,9 +42,7 @@ export function useBatchActions({
   );
 
   const handleBatchIndex = useCallback(() => {
-    const toIndex = selectedResources.filter(
-      (r) => r.status === null || r.status === 'resource',
-    );
+    const toIndex = selectedResources.filter((r) => r.status === null || r.status === 'resource');
     if (toIndex.length > 0) {
       indexing.handleIndex(toIndex, kbResources);
     }
