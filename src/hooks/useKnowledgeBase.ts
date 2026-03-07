@@ -13,46 +13,67 @@ import type { PaginatedResponse } from '@/types/api';
 
 // --- List Knowledge Base Resources ---
 
+/** Fetches KB resources at a path, paginates, then recurses into directories. */
+async function fetchKBResourcesRecursive(
+  kbId: string,
+  resourcePath: string,
+): Promise<KBResource[]> {
+  const all: KBResource[] = [];
+  let cursor: string | null = null;
+
+  do {
+    const params = new URLSearchParams({ resource_path: resourcePath });
+    if (cursor) params.set('cursor', cursor);
+    const page = await apiFetch<PaginatedResponse<KBResource>>(
+      `/knowledge-bases/${kbId}/resources?${params}`,
+    );
+    all.push(...page.data);
+    cursor = page.next_cursor ?? null;
+  } while (cursor);
+
+  // Recurse into directories to get nested files
+  const dirs = all.filter((r) => r.inode_type === 'directory');
+  const nested = await Promise.all(
+    dirs.map((d) => {
+      const name = d.inode_path.path.split('/').pop() ?? d.inode_path.path;
+      const subPath = resourcePath === '/' ? `/${name}` : `${resourcePath}/${name}`;
+      return fetchKBResourcesRecursive(kbId, subPath);
+    }),
+  );
+
+  return [...all, ...nested.flat()];
+}
+
 /**
  * Fetches all pages of KB resources with indexed status.
  * Polls every 1s while any resource is in "pending" status or the list is
  * empty — stops automatically once all resources reach a terminal state.
  */
-export function useKBResources(kbId: string | undefined, resourcePath: string = '/') {
+export function useKBResources(
+  kbId: string | undefined,
+  resourcePath: string = '/',
+  hasActiveJobs: boolean = false,
+) {
   // KB API requires resource_path to start with '/'
   const normalizedPath = resourcePath.startsWith('/') ? resourcePath : `/${resourcePath}`;
   return useQuery({
     queryKey: resourceKeys.kbResourceList(kbId ?? '', normalizedPath),
     queryFn: async (): Promise<KBResource[]> => {
-      const all: KBResource[] = [];
-      let cursor: string | null = null;
-
-      do {
-        const params = new URLSearchParams({ resource_path: normalizedPath });
-        if (cursor) params.set('cursor', cursor);
-
-        const page = await apiFetch<PaginatedResponse<KBResource>>(
-          `/knowledge-bases/${kbId}/resources?${params}`,
-        );
-        all.push(...page.data);
-        cursor = page.next_cursor ?? null;
-      } while (cursor);
-
-      return all;
+      return fetchKBResourcesRecursive(kbId!, normalizedPath);
     },
     enabled: !!kbId,
     staleTime: 5 * 60 * 1000,
     // Auto-poll while resources are being indexed.
-    // Also poll when the list is empty — the KB may not list resources immediately
-    // after sync/trigger fires (async server-side processing takes a moment).
-    // Stop ONLY when every resource has reached 'indexed' — checking for 'pending'
-    // alone misses undocumented transitional states the API may return (e.g. 'resource',
-    // 'queued', 'processing'). This covers the full documented + undocumented lifecycle.
+    // Guard: only poll on empty data when there are active indexing jobs —
+    // prevents infinite polling on paths that will never get KB resources.
+    // Stop when every resource has reached 'indexed'.
     refetchInterval: (query) => {
       const data = query.state.data;
       if (!data) return false;
-      if (data.length === 0) return 1000;
-      return data.every((r) => r.status === 'indexed') ? false : 1000;
+      if (data.length === 0) return hasActiveJobs ? 1000 : false;
+      const files = data.filter((r) => r.inode_type === 'file');
+      if (files.length === 0) return hasActiveJobs ? 1000 : false;
+      return files.every((r) => r.status === 'indexed' || r.status === 'parsed') ? false : 1000;
     },
     select: (data): Resource[] =>
       data.map(toResource).sort((a, b) => {

@@ -17,7 +17,7 @@ type ActionButtonsProps = {
   isFolder: boolean;
   isPendingDelete?: boolean;
   onIndex: (resource: Resource) => void;
-  onDeindex: (path: string) => void;
+  onDeindex: (resourceId: string, path: string) => void;
   onDelete: (resourceId: string, name: string, path: string) => void;
 };
 

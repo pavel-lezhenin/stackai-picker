@@ -22,7 +22,7 @@ type FileRowContextMenuProps = {
   resourceId: string;
   onNavigate?: (resourceId: string, name: string, path: string) => void;
   onIndex: (resource: Resource) => void;
-  onDeindex: (path: string) => void;
+  onDeindex: (resourceId: string, path: string) => void;
   onDelete: (resourceId: string, name: string, path: string) => void;
 };
 
@@ -65,7 +65,7 @@ export function FileRowContextMenu({
         )}
 
         {isIndexed && (
-          <ContextMenuItem onClick={() => onDeindex(path)}>
+          <ContextMenuItem onClick={() => onDeindex(resourceId, path)}>
             <X className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
             Remove from Knowledge Base
           </ContextMenuItem>

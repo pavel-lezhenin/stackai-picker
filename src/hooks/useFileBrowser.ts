@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 
 import { useBatchActions } from '@/hooks/useBatchActions';
 import { useConnection } from '@/hooks/useConnection';
@@ -39,15 +39,35 @@ export function useFileBrowser() {
   } = useResources(connection?.connection_id, currentFolder.id);
 
   const indexing = useIndexing(connection?.connection_id, org?.org_id);
-  const { kbId, localStatuses } = indexing;
+  const { kbId, hasActiveJobs, getDisplayStatus, deindexedIds } = indexing;
 
   const deleteFlow = useDeleteFlow(kbId);
   const { deletingId, hiddenResourceIds } = deleteFlow;
 
-  const { data: kbResources = [] } = useKBResources(kbId, currentFolder.path);
+  const { data: kbResources = [] } = useKBResources(kbId, '/', hasActiveJobs);
+
+  // Resolve submitted entries from KB poll data (runs on every kbResources change)
+  useEffect(() => {
+    if (kbResources.length > 0) {
+      indexing.resolveFromKBData(kbResources);
+    }
+  }, [kbResources, indexing]);
+
+  // Periodic timeout check for entries the user never navigated to
+  useEffect(() => {
+    if (!hasActiveJobs) return;
+    const timer = setInterval(indexing.resolveTimeouts, 5000);
+    return () => clearInterval(timer);
+  }, [hasActiveJobs, indexing]);
 
   const { filteredResources, resources, indexedCount, statusFilter, setStatusFilter, resetFilter } =
-    useResourceMerge(connectionResources, kbResources, hiddenResourceIds, localStatuses);
+    useResourceMerge(
+      connectionResources,
+      kbResources,
+      hiddenResourceIds,
+      getDisplayStatus,
+      deindexedIds,
+    );
 
   const {
     sortedResources,

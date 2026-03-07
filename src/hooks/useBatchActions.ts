@@ -37,15 +37,16 @@ export function useBatchActions({
   );
 
   const handleIndex = useCallback(
-    (resource: Resource) => indexing.handleIndex(resource, kbResources),
+    (resource: Resource) => indexing.handleIndex([resource], kbResources),
     [indexing, kbResources],
   );
 
   const handleBatchIndex = useCallback(() => {
-    for (const r of selectedResources) {
-      if (r.status === null || r.status === 'resource') {
-        indexing.handleIndex(r, kbResources);
-      }
+    const toIndex = selectedResources.filter(
+      (r) => r.status === null || r.status === 'resource',
+    );
+    if (toIndex.length > 0) {
+      indexing.handleIndex(toIndex, kbResources);
     }
     clearSelection();
   }, [selectedResources, indexing, kbResources, clearSelection]);
@@ -53,7 +54,7 @@ export function useBatchActions({
   const handleBatchDeindex = useCallback(() => {
     for (const r of selectedResources) {
       if (r.status === 'indexed') {
-        indexing.handleDeindex(r.path);
+        indexing.handleDeindex(r.resourceId, r.path);
       }
     }
     clearSelection();

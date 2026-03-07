@@ -8,7 +8,7 @@ type Params = {
   path: string;
   resource: Resource;
   onIndex: (resource: Resource) => void;
-  onDeindex: (path: string) => void;
+  onDeindex: (resourceId: string, path: string) => void;
   onDelete: (resourceId: string, name: string, path: string) => void;
 };
 
@@ -38,9 +38,9 @@ export function useActionButtonHandlers({
   const handleDeindex = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      onDeindex(path);
+      onDeindex(resourceId, path);
     },
-    [path, onDeindex],
+    [resourceId, path, onDeindex],
   );
 
   const handleDelete = useCallback(
