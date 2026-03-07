@@ -6,8 +6,7 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
-    // Only run integration tests — no unit/component tests yet
-    include: ['tests/integration/**/*.test.ts'],
+    include: ['tests/**/*.test.ts'],
     globals: true,
     // Real HTTP calls need generous timeouts
     testTimeout: 30_000,

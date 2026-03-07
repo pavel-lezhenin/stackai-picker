@@ -1,7 +1,7 @@
 'use client';
 
 import { memo } from 'react';
-import { Check, Minus, Loader2 } from 'lucide-react';
+import { AlertCircle, Check, Minus, Loader2 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -18,10 +18,20 @@ const STATUS_CONFIG = {
     icon: Check,
     className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   },
+  parsed: {
+    label: 'Indexed',
+    icon: Check,
+    className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  },
   pending: {
     label: 'Pending',
     icon: Loader2,
     className: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+  },
+  error: {
+    label: 'Error',
+    icon: AlertCircle,
+    className: 'bg-red-500/10 text-red-600 border-red-500/20',
   },
   resource: {
     label: 'Not Indexed',

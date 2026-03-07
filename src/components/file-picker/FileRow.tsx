@@ -35,7 +35,7 @@ type FileRowProps = {
   onNavigate: (resourceId: string, name: string, path: string) => void;
   onDelete: (resourceId: string, name: string, path: string) => void;
   onIndex: (resource: Resource) => void;
-  onDeindex: (path: string) => void;
+  onDeindex: (resourceId: string, path: string) => void;
   onToggleSelect: (resourceId: string, shiftKey: boolean) => void;
 };
 

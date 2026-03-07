@@ -1,0 +1,951 @@
+diff --git a/src/components/file-picker/ActionButtons.tsx b/src/components/file-picker/ActionButtons.tsx
+index 82b8067..b9e8567 100644
+--- a/src/components/file-picker/ActionButtons.tsx
++++ b/src/components/file-picker/ActionButtons.tsx
+@@ -17,7 +17,7 @@ type ActionButtonsProps = {
+   isFolder: boolean;
+   isPendingDelete?: boolean;
+   onIndex: (resource: Resource) => void;
+-  onDeindex: (path: string) => void;
++  onDeindex: (resourceId: string, path: string) => void;
+   onDelete: (resourceId: string, name: string, path: string) => void;
+ };
+ 
+diff --git a/src/components/file-picker/FileList.tsx b/src/components/file-picker/FileList.tsx
+index bcf9dc0..6963bb8 100644
+--- a/src/components/file-picker/FileList.tsx
++++ b/src/components/file-picker/FileList.tsx
+@@ -38,7 +38,7 @@ type FileListProps = {
+   onNavigate: (resourceId: string, name: string, path: string) => void;
+   onDelete: (resourceId: string, name: string, path: string) => void;
+   onIndex: (resource: Resource) => void;
+-  onDeindex: (path: string) => void;
++  onDeindex: (resourceId: string, path: string) => void;
+   onRetry: () => void;
+   onBatchIndex: () => void;
+   onBatchDeindex: () => void;
+diff --git a/src/components/file-picker/FileRow.tsx b/src/components/file-picker/FileRow.tsx
+index d096fb5..b2eae3d 100644
+--- a/src/components/file-picker/FileRow.tsx
++++ b/src/components/file-picker/FileRow.tsx
+@@ -35,7 +35,7 @@ type FileRowProps = {
+   onNavigate: (resourceId: string, name: string, path: string) => void;
+   onDelete: (resourceId: string, name: string, path: string) => void;
+   onIndex: (resource: Resource) => void;
+-  onDeindex: (path: string) => void;
++  onDeindex: (resourceId: string, path: string) => void;
+   onToggleSelect: (resourceId: string, shiftKey: boolean) => void;
+ };
+ 
+diff --git a/src/components/file-picker/FileRowContextMenu.tsx b/src/components/file-picker/FileRowContextMenu.tsx
+index 99525b8..bf079a6 100644
+--- a/src/components/file-picker/FileRowContextMenu.tsx
++++ b/src/components/file-picker/FileRowContextMenu.tsx
+@@ -22,7 +22,7 @@ type FileRowContextMenuProps = {
+   resourceId: string;
+   onNavigate?: (resourceId: string, name: string, path: string) => void;
+   onIndex: (resource: Resource) => void;
+-  onDeindex: (path: string) => void;
++  onDeindex: (resourceId: string, path: string) => void;
+   onDelete: (resourceId: string, name: string, path: string) => void;
+ };
+ 
+@@ -65,7 +65,7 @@ export function FileRowContextMenu({
+         )}
+ 
+         {isIndexed && (
+-          <ContextMenuItem onClick={() => onDeindex(path)}>
++          <ContextMenuItem onClick={() => onDeindex(resourceId, path)}>
+             <X className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+             Remove from Knowledge Base
+           </ContextMenuItem>
+diff --git a/src/components/file-picker/FileRowsCanvas.tsx b/src/components/file-picker/FileRowsCanvas.tsx
+index 110f5ec..b03f61d 100644
+--- a/src/components/file-picker/FileRowsCanvas.tsx
++++ b/src/components/file-picker/FileRowsCanvas.tsx
+@@ -16,7 +16,7 @@ type FileRowsCanvasProps = {
+   onNavigate: (resourceId: string, name: string, path: string) => void;
+   onDelete: (resourceId: string, name: string, path: string) => void;
+   onIndex: (resource: Resource) => void;
+-  onDeindex: (path: string) => void;
++  onDeindex: (resourceId: string, path: string) => void;
+   onToggleSelect: (id: string, shiftKey: boolean) => void;
+ };
+ 
+diff --git a/src/components/file-picker/StatusBadge.tsx b/src/components/file-picker/StatusBadge.tsx
+index 55f95b6..c35c9b5 100644
+--- a/src/components/file-picker/StatusBadge.tsx
++++ b/src/components/file-picker/StatusBadge.tsx
+@@ -1,7 +1,7 @@
+ 'use client';
+ 
+ import { memo } from 'react';
+-import { Check, Minus, Loader2 } from 'lucide-react';
++import { AlertCircle, Check, Minus, Loader2 } from 'lucide-react';
+ 
+ import { Badge } from '@/components/ui/badge';
+ import { cn } from '@/lib/utils';
+@@ -18,11 +18,21 @@ const STATUS_CONFIG = {
+     icon: Check,
+     className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+   },
++  parsed: {
++    label: 'Indexed',
++    icon: Check,
++    className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
++  },
+   pending: {
+     label: 'Pending',
+     icon: Loader2,
+     className: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+   },
++  error: {
++    label: 'Error',
++    icon: AlertCircle,
++    className: 'bg-red-500/10 text-red-600 border-red-500/20',
++  },
+   resource: {
+     label: 'Not Indexed',
+     icon: Minus,
+diff --git a/src/hooks/useActionButtonHandlers.ts b/src/hooks/useActionButtonHandlers.ts
+index 2f46206..b9de765 100644
+--- a/src/hooks/useActionButtonHandlers.ts
++++ b/src/hooks/useActionButtonHandlers.ts
+@@ -8,7 +8,7 @@ type Params = {
+   path: string;
+   resource: Resource;
+   onIndex: (resource: Resource) => void;
+-  onDeindex: (path: string) => void;
++  onDeindex: (resourceId: string, path: string) => void;
+   onDelete: (resourceId: string, name: string, path: string) => void;
+ };
+ 
+@@ -38,9 +38,9 @@ export function useActionButtonHandlers({
+   const handleDeindex = useCallback(
+     (e: React.MouseEvent) => {
+       e.stopPropagation();
+-      onDeindex(path);
++      onDeindex(resourceId, path);
+     },
+-    [path, onDeindex],
++    [resourceId, path, onDeindex],
+   );
+ 
+   const handleDelete = useCallback(
+diff --git a/src/hooks/useBatchActions.ts b/src/hooks/useBatchActions.ts
+index b0e3026..d874517 100644
+--- a/src/hooks/useBatchActions.ts
++++ b/src/hooks/useBatchActions.ts
+@@ -37,15 +37,16 @@ export function useBatchActions({
+   );
+ 
+   const handleIndex = useCallback(
+-    (resource: Resource) => indexing.handleIndex(resource, kbResources),
++    (resource: Resource) => indexing.handleIndex([resource], kbResources),
+     [indexing, kbResources],
+   );
+ 
+   const handleBatchIndex = useCallback(() => {
+-    for (const r of selectedResources) {
+-      if (r.status === null || r.status === 'resource') {
+-        indexing.handleIndex(r, kbResources);
+-      }
++    const toIndex = selectedResources.filter(
++      (r) => r.status === null || r.status === 'resource',
++    );
++    if (toIndex.length > 0) {
++      indexing.handleIndex(toIndex, kbResources);
+     }
+     clearSelection();
+   }, [selectedResources, indexing, kbResources, clearSelection]);
+@@ -53,7 +54,7 @@ export function useBatchActions({
+   const handleBatchDeindex = useCallback(() => {
+     for (const r of selectedResources) {
+       if (r.status === 'indexed') {
+-        indexing.handleDeindex(r.path);
++        indexing.handleDeindex(r.resourceId, r.path);
+       }
+     }
+     clearSelection();
+diff --git a/src/hooks/useFileBrowser.ts b/src/hooks/useFileBrowser.ts
+index 76a365e..2f1db42 100644
+--- a/src/hooks/useFileBrowser.ts
++++ b/src/hooks/useFileBrowser.ts
+@@ -1,6 +1,6 @@
+ 'use client';
+ 
+-import { useCallback, useMemo } from 'react';
++import { useCallback, useEffect, useMemo } from 'react';
+ 
+ import { useBatchActions } from '@/hooks/useBatchActions';
+ import { useConnection } from '@/hooks/useConnection';
+@@ -39,15 +39,31 @@ export function useFileBrowser() {
+   } = useResources(connection?.connection_id, currentFolder.id);
+ 
+   const indexing = useIndexing(connection?.connection_id, org?.org_id);
+-  const { kbId, localStatuses } = indexing;
++  const { kbId, hasActiveJobs, getDisplayStatus } = indexing;
+ 
+   const deleteFlow = useDeleteFlow(kbId);
+   const { deletingId, hiddenResourceIds } = deleteFlow;
+ 
+-  const { data: kbResources = [] } = useKBResources(kbId, currentFolder.path);
++  const { data: kbResources = [] } = useKBResources(kbId, '/', hasActiveJobs);
++
++  // Resolve submitted entries from KB poll data (runs on every kbResources change)
++  useEffect(() => {
++    if (kbResources.length > 0) {
++      console.log('[resolve] kbResources:', kbResources.map(r => `${r.name}(${r.type}:${r.status})`));
++      console.log('[resolve] submittedIds:', [...indexing.submittedIds.entries()].map(([id, e]) => `${id}→${e.name}(${e.status})`));
++      indexing.resolveFromKBData(kbResources);
++    }
++  }, [kbResources, indexing]);
++
++  // Periodic timeout check for entries the user never navigated to
++  useEffect(() => {
++    if (!hasActiveJobs) return;
++    const timer = setInterval(indexing.resolveTimeouts, 5000);
++    return () => clearInterval(timer);
++  }, [hasActiveJobs, indexing]);
+ 
+   const { filteredResources, resources, indexedCount, statusFilter, setStatusFilter, resetFilter } =
+-    useResourceMerge(connectionResources, kbResources, hiddenResourceIds, localStatuses);
++    useResourceMerge(connectionResources, kbResources, hiddenResourceIds, getDisplayStatus);
+ 
+   const {
+     sortedResources,
+diff --git a/src/hooks/useIndexing.ts b/src/hooks/useIndexing.ts
+index fb8cf1b..01dd73f 100644
+--- a/src/hooks/useIndexing.ts
++++ b/src/hooks/useIndexing.ts
+@@ -1,135 +1,394 @@
+ 'use client';
+ 
+-import { useCallback, useState } from 'react';
++import { useCallback, useMemo, useRef, useState } from 'react';
+ import { toast } from 'sonner';
+ 
+ import { useDeleteKBResource } from '@/hooks/useKnowledgeBase';
+ import { useIndexResources } from '@/hooks/useIndexResources';
+ import { fetchFolderChildren } from '@/lib/fetchFolderChildren';
+ 
+-import type { Resource, ResourceStatus } from '@/types/resource';
++import type { Resource, ResourceStatus, SubmittedEntry } from '@/types/resource';
++
++/** KB API terminal success statuses — 'parsed' is the real status, 'indexed' for compatibility. */
++function isKBDone(status: ResourceStatus): boolean {
++  return status === 'indexed' || status === 'parsed';
++}
++
++/** After this duration, pending files that the server never confirmed are marked 'error'. */
++const INDEXING_TIMEOUT_MS = 60 * 1000; // 1 minute
++
++/** Recursively collects all file descendants under a folder by walking parentId links. */
++function getFileDescendants(
++  folderId: string,
++  entries: Map<string, SubmittedEntry>,
++): SubmittedEntry[] {
++  const result: SubmittedEntry[] = [];
++  for (const [id, entry] of entries) {
++    if (id === folderId) continue; // skip self to prevent infinite recursion
++    if (entry.parentId !== folderId) continue;
++    if (entry.type === 'file') {
++      result.push(entry);
++    } else if (entry.type === 'folder') {
++      result.push(...getFileDescendants(id, entries));
++    }
++  }
++  return result;
++}
+ 
+ /**
+- * Encapsulates all indexing / de-indexing state and logic:
+- * - KB ID lifecycle
+- * - Optimistic `localStatuses` map
+- * - Folder expansion into individual files
+- * - Index and deindex handlers
++ * Manages indexing / de-indexing state with per-resourceId tracking.
++ *
++ * Key differences from the old localStatuses approach:
++ *   - Tracks by resourceId (not name) → no cross-folder collisions
++ *   - Never manually sets folders to 'indexed' → folder status is derived
++ *   - isPendingIndex guards async gap during fetchFolderChildren
++ *   - resolveFromKBData + timeout guarantee termination (no stuck 'pending')
+  */
+ export function useIndexing(connectionId: string | undefined, orgId: string | undefined) {
+   const [kbId, setKbId] = useState<string | undefined>(undefined);
+-  const [localStatuses, setLocalStatuses] = useState<Map<string, ResourceStatus>>(new Map());
++  const [submittedIds, setSubmittedIds] = useState<Map<string, SubmittedEntry>>(new Map());
++  const [isPendingIndex, setIsPendingIndex] = useState(false);
++
++  // Accumulates all file Resources ever submitted — used to build the mutation
++  // payload so rapid-fire indexing always includes previously-submitted files,
++  // even before kbResources has refreshed.
++  const allSubmittedResources = useRef<Map<string, Resource>>(new Map());
++
++  // Monotonic counter to resolve race: only the LAST mutate call wins setKbId,
++  // regardless of which HTTP response arrives first.
++  const mutationSeqRef = useRef(0);
+ 
+   const indexMutation = useIndexResources();
+   const deleteMutation = useDeleteKBResource(kbId);
+ 
+-  const handleIndex = useCallback(
+-    async (resource: Resource, kbResources: Resource[]) => {
+-      if (!connectionId || !orgId) return;
++  /** True when any submitted file is still pending (drives polling guard). */
++  const hasActiveJobs = useMemo(
++    () => [...submittedIds.values()].some((e) => e.status === 'pending'),
++    [submittedIds],
++  );
+ 
+-      const alreadyIndexed = kbResources.filter(
+-        (r) =>
+-          (r.status === 'indexed' || r.status === 'pending') &&
+-          r.resourceId !== resource.resourceId,
+-      );
++  /**
++   * Returns the display status for a resource based on submitted tracking.
++   * - Files: direct lookup by resourceId
++   * - Folders: derived from children that share the same jobRootId
++   * - Unknown: returns null (not tracked)
++   */
++  const getDisplayStatus = useCallback(
++    (resourceId: string): ResourceStatus => {
++      const now = Date.now();
+ 
+-      let newResources: Resource[];
+-      let folderNames: string[] = [];
++      const entry = submittedIds.get(resourceId);
+ 
+-      if (resource.type === 'folder') {
+-        setLocalStatuses((prev) => {
+-          const next = new Map(prev);
+-          next.set(resource.name, 'pending');
+-          alreadyIndexed.forEach((r) => next.set(r.name, 'indexed'));
+-          return next;
++      // File: direct lookup
++      if (entry && entry.type === 'file') {
++        if (entry.status === 'pending' && now - entry.submittedAt > INDEXING_TIMEOUT_MS) {
++          return 'error';
++        }
++        return entry.status;
++      }
++
++      // Subfolder within a job: derive from file entries whose parentId matches
++      if (entry && entry.type === 'folder') {
++        const folderId = resourceId;
++        const fileDescendants = getFileDescendants(folderId, submittedIds);
++        const statuses = fileDescendants.map((e) => {
++          if (e.status === 'pending' && now - e.submittedAt > INDEXING_TIMEOUT_MS) return 'error';
++          return e.status;
+         });
++        console.log(`[getDisplayStatus] folder ${resourceId} (subfolder entry): descendants=${fileDescendants.length}, statuses=${JSON.stringify(statuses)}`);
++        if (fileDescendants.length === 0) return 'pending';
++        if (statuses.some((s) => s === 'pending')) return 'pending';
++        if (statuses.some((s) => isKBDone(s))) return 'indexed';
++        return 'error';
++      }
+ 
+-        try {
+-          const children = await fetchFolderChildren(connectionId, resource.resourceId);
+-          newResources = children.filter((c) => c.type === 'file');
+-          if (newResources.length === 0) {
+-            toast.error('Folder is empty — nothing to index');
+-            setLocalStatuses((prev) => {
+-              const next = new Map(prev);
+-              next.delete(resource.name);
+-              return next;
+-            });
+-            return;
+-          }
+-          folderNames = [
+-            resource.name,
+-            ...children.filter((c) => c.type === 'folder').map((c) => c.name),
+-          ];
+-          setLocalStatuses((prev) => {
+-            const next = new Map(prev);
+-            children.forEach((c) => next.set(c.name, 'pending'));
+-            alreadyIndexed.forEach((r) => next.set(r.name, 'indexed'));
+-            return next;
++      // Root folder (pseudo-entry was deleted): derive from children with matching jobRootId
++      const children = [...submittedIds.values()].filter(
++        (e) => e.jobRootId === resourceId && e.type === 'file',
++      );
++      console.log(`[getDisplayStatus] ${resourceId}: entry=${entry?.type ?? 'none'}, jobRootId children=${children.length}, statuses=${JSON.stringify(children.map(c => c.status))}`);
++      if (children.length === 0) return null;
++
++      const statuses = children.map((e) => {
++        if (e.status === 'pending' && now - e.submittedAt > INDEXING_TIMEOUT_MS) return 'error';
++        return e.status;
++      });
++      if (statuses.some((s) => s === 'pending')) return 'pending';
++      if (statuses.some((s) => isKBDone(s))) return 'indexed';
++      return 'error';
++    },
++    [submittedIds],
++  );
++
++  /**
++   * Updates submitted entries from KB poll data.
++   * Runs resolveTick logic: server 'indexed' → mark indexed,
++   * all KB files indexed + absent → mark error (skipped),
++   * timeout → mark error.
++   */
++  const resolveFromKBData = useCallback((kbResources: Resource[]) => {
++    setSubmittedIds((prev) => {
++      const kbFiles = kbResources.filter((r) => r.type === 'file');
++      if (kbFiles.length === 0 && prev.size === 0) return prev;
++
++      const kbStatusById = new Map(kbFiles.map((r) => [r.resourceId, r.status]));
++      const kbStatusByName = new Map(kbFiles.map((r) => [r.name, r.status]));
++      const allKBFilesIndexed =
++        kbFiles.length > 0 && kbFiles.every((r) => isKBDone(r.status));
++      const now = Date.now();
++
++      let changed = false;
++      const next = new Map(prev);
++
++      for (const [id, entry] of next) {
++        // Folder entries are always derived — skip them
++        if (entry.type === 'folder') continue;
++        if (entry.status !== 'pending') continue;
++
++        // Rule 1: server confirmed done (by ID or name)
++        const kbStatus = kbStatusById.get(id) ?? kbStatusByName.get(entry.name);
++        if (kbStatus && isKBDone(kbStatus)) {
++          next.set(id, { ...entry, status: 'indexed' });
++          changed = true;
++          continue;
++        }
++
++        // Rule 2: all KB files indexed + this file absent → skipped.
++        // Scoped per job: only apply if KB contains at least one sibling
++        // from the SAME job (jobRootId), proving the server started processing
++        // this specific batch — not a different one.
++        const jobSiblingInKB = [...prev].some(
++          ([sibId, sib]) =>
++            sibId !== id &&
++            sib.jobRootId === entry.jobRootId &&
++            sib.type === 'file' &&
++            (kbStatusById.has(sibId) || kbStatusByName.has(sib.name)),
++        );
++        if (allKBFilesIndexed && jobSiblingInKB && !kbStatusById.has(id) && !kbStatusByName.has(entry.name)) {
++          next.set(id, { ...entry, status: 'error' });
++          changed = true;
++          continue;
++        }
++
++        // Rule 3: timeout
++        if (now - entry.submittedAt > INDEXING_TIMEOUT_MS) {
++          next.set(id, { ...entry, status: 'error' });
++          changed = true;
++        }
++      }
++
++      return changed ? next : prev;
++    });
++  }, []);
++
++  /** Force-resolve any timed-out file entries (called periodically from useFileBrowser). */
++  const resolveTimeouts = useCallback(() => {
++    const now = Date.now();
++    setSubmittedIds((prev) => {
++      let changed = false;
++      const next = new Map(prev);
++      for (const [id, entry] of next) {
++        if (entry.type === 'folder') continue;
++        if (entry.status === 'pending' && now - entry.submittedAt > INDEXING_TIMEOUT_MS) {
++          next.set(id, { ...entry, status: 'error' });
++          changed = true;
++        }
++      }
++      return changed ? next : prev;
++    });
++  }, []);
++
++  // --- Serialized indexing queue ---
++  // Each handleIndex call enqueues work. Jobs run one at a time so that
++  // allSubmittedResources ref is up-to-date for each subsequent KB creation.
++  const queueRef = useRef<Promise<void>>(Promise.resolve());
++
++  const executeIndex = useCallback(
++    async (resources: Resource[], kbResources: Resource[]) => {
++      if (!connectionId || !orgId) return;
++      if (resources.length === 0) return;
++
++      setIsPendingIndex(true);
++      const now = Date.now();
++
++      // Build alreadyIndexed from BOTH kbResources AND our accumulated ref.
++      const newIds = new Set(resources.map((r) => r.resourceId));
++      const alreadyById = new Map<string, Resource>();
++      for (const r of kbResources) {
++        if ((isKBDone(r.status) || r.status === 'pending') && !newIds.has(r.resourceId)) {
++          alreadyById.set(r.resourceId, r);
++        }
++      }
++      for (const [id, r] of allSubmittedResources.current) {
++        if (!newIds.has(id) && !alreadyById.has(id)) {
++          alreadyById.set(id, r);
++        }
++      }
++      const alreadyIndexed = [...alreadyById.values()];
++
++      // Mark all resources as pending immediately
++      setSubmittedIds((prev) => {
++        const next = new Map(prev);
++        for (const resource of resources) {
++          next.set(resource.resourceId, {
++            name: resource.name,
++            type: resource.type === 'folder' ? 'folder' : 'file',
++            parentId: resource.resourceId,
++            status: 'pending',
++            jobRootId: resource.resourceId,
++            submittedAt: now,
+           });
+-        } catch {
+-          toast.error('Failed to load folder contents');
+-          setLocalStatuses((prev) => {
++        }
++        return next;
++      });
++
++      // Resolve all folders to their children in parallel
++      const allNewFiles: Resource[] = [];
++      const folderChildren = new Map<string, Awaited<ReturnType<typeof fetchFolderChildren>>>();
++
++      try {
++        const folders = resources.filter((r) => r.type === 'folder');
++        const files = resources.filter((r) => r.type !== 'folder');
++        allNewFiles.push(...files);
++
++        if (folders.length > 0) {
++          const results = await Promise.all(
++            folders.map(async (f) => ({
++              folderId: f.resourceId,
++              folderName: f.name,
++              children: await fetchFolderChildren(connectionId, f.resourceId),
++            })),
++          );
++
++          for (const { folderId, folderName, children } of results) {
++            folderChildren.set(folderId, children);
++            const childFiles = children.filter((c) => c.type === 'file');
++            if (childFiles.length === 0) {
++              toast.info(`'${folderName}' is empty — skipped`);
++            }
++            allNewFiles.push(...childFiles);
++          }
++        }
++
++        if (allNewFiles.length === 0) {
++          toast.error('No files to index');
++          setSubmittedIds((prev) => {
+             const next = new Map(prev);
+-            next.delete(resource.name);
++            for (const r of resources) next.delete(r.resourceId);
+             return next;
+           });
++          setIsPendingIndex(false);
+           return;
+         }
+-      } else {
+-        newResources = [resource];
+-        setLocalStatuses((prev) => {
++
++        // Replace folder pseudo-entries with actual children
++        setSubmittedIds((prev) => {
+           const next = new Map(prev);
+-          next.set(resource.name, 'pending');
+-          alreadyIndexed.forEach((r) => next.set(r.name, 'indexed'));
++          for (const [folderId, children] of folderChildren) {
++            next.delete(folderId);
++            for (const child of children) {
++              next.set(child.resourceId, {
++                name: child.name,
++                type: child.type,
++                parentId: child.parentId,
++                status: 'pending',
++                jobRootId: folderId,
++                submittedAt: now,
++              });
++            }
++          }
+           return next;
+         });
++      } catch {
++        toast.error('Failed to load folder contents');
++        setSubmittedIds((prev) => {
++          const next = new Map(prev);
++          for (const r of resources) next.delete(r.resourceId);
++          return next;
++        });
++        setIsPendingIndex(false);
++        return;
++      }
++
++      const allResources = [...alreadyIndexed, ...allNewFiles];
++
++      // Track file resources for future calls
++      for (const r of allNewFiles) {
++        allSubmittedResources.current.set(r.resourceId, r);
+       }
+ 
+-      const allResources = [...alreadyIndexed, ...newResources];
++      const seq = ++mutationSeqRef.current;
+ 
+-      indexMutation.mutate(
+-        { connectionId, resources: allResources, orgId },
+-        {
+-          onSuccess: (kb) => {
+-            setKbId(kb.knowledge_base_id);
+-            if (folderNames.length > 0) {
+-              setLocalStatuses((prev) => {
++      const label = resources.length === 1
++        ? resources[0].type === 'folder'
++          ? `Started indexing ${allNewFiles.length} files from '${resources[0].name}'`
++          : `Started indexing '${resources[0].name}'`
++        : `Started indexing ${allNewFiles.length} files from ${resources.length} items`;
++
++      // Wrap mutate in a promise so the queue waits for completion
++      await new Promise<void>((resolve) => {
++        indexMutation.mutate(
++          { connectionId, resources: allResources, orgId },
++          {
++            onSuccess: (kb) => {
++              if (seq === mutationSeqRef.current) {
++                setKbId(kb.knowledge_base_id);
++              }
++              setIsPendingIndex(false);
++              toast.success(label);
++              resolve();
++            },
++            onError: () => {
++              setSubmittedIds((prev) => {
+                 const next = new Map(prev);
+-                folderNames.forEach((name) => next.set(name, 'indexed'));
++                for (const r of resources) next.delete(r.resourceId);
++                for (const r of allNewFiles) next.delete(r.resourceId);
+                 return next;
+               });
+-            }
+-            const label =
+-              resource.type === 'folder'
+-                ? `Started indexing ${newResources.length} files from '${resource.name}'`
+-                : `Started indexing '${resource.name}'`;
+-            toast.success(label);
+-          },
+-          onError: () => {
+-            setLocalStatuses((prev) => {
+-              const next = new Map(prev);
+-              newResources.forEach((r) => next.delete(r.name));
+-              return next;
+-            });
++              setIsPendingIndex(false);
++              resolve();
++            },
+           },
+-        },
+-      );
++        );
++      });
+     },
+     [connectionId, orgId, indexMutation],
+   );
+ 
++  /** Public API: enqueues resources for indexing. Multiple rapid calls are serialized. */
++  const handleIndex = useCallback(
++    (resources: Resource[], kbResources: Resource[]) => {
++      // Show pending immediately for all resources
++      const now = Date.now();
++      setSubmittedIds((prev) => {
++        const next = new Map(prev);
++        for (const resource of resources) {
++          next.set(resource.resourceId, {
++            name: resource.name,
++            type: resource.type === 'folder' ? 'folder' : 'file',
++            parentId: resource.resourceId,
++            status: 'pending',
++            jobRootId: resource.resourceId,
++            submittedAt: now,
++          });
++        }
++        return next;
++      });
++
++      // Chain onto queue — each job waits for the previous one
++      queueRef.current = queueRef.current.then(() => executeIndex(resources, kbResources));
++    },
++    [executeIndex],
++  );
++
+   const handleDeindex = useCallback(
+-    (path: string) => {
+-      // Clear optimistic local status so the merge immediately picks up "not indexed"
+-      // instead of keeping the stale 'pending'/'indexed' override forever.
+-      const name = path.split('/').pop();
+-      if (name) {
+-        setLocalStatuses((prev) => {
+-          const next = new Map(prev);
+-          next.delete(name);
+-          return next;
+-        });
+-      }
++    (resourceId: string, path: string) => {
++      setSubmittedIds((prev) => {
++        const next = new Map(prev);
++        next.delete(resourceId);
++        return next;
++      });
++      allSubmittedResources.current.delete(resourceId);
+       deleteMutation.mutate(path);
+     },
+     [deleteMutation],
+@@ -137,9 +396,14 @@ export function useIndexing(connectionId: string | undefined, orgId: string | un
+ 
+   return {
+     kbId,
+-    localStatuses,
++    submittedIds,
++    hasActiveJobs,
++    isPendingIndex,
+     isIndexing: indexMutation.isPending,
+     isDeletePending: deleteMutation.isPending,
++    getDisplayStatus,
++    resolveFromKBData,
++    resolveTimeouts,
+     handleIndex,
+     handleDeindex,
+     deleteMutation,
+diff --git a/src/hooks/useKnowledgeBase.ts b/src/hooks/useKnowledgeBase.ts
+index 906a495..e5ff3e6 100644
+--- a/src/hooks/useKnowledgeBase.ts
++++ b/src/hooks/useKnowledgeBase.ts
+@@ -13,46 +13,67 @@ import type { PaginatedResponse } from '@/types/api';
+ 
+ // --- List Knowledge Base Resources ---
+ 
++/** Fetches KB resources at a path, paginates, then recurses into directories. */
++async function fetchKBResourcesRecursive(
++  kbId: string,
++  resourcePath: string,
++): Promise<KBResource[]> {
++  const all: KBResource[] = [];
++  let cursor: string | null = null;
++
++  do {
++    const params = new URLSearchParams({ resource_path: resourcePath });
++    if (cursor) params.set('cursor', cursor);
++    const page = await apiFetch<PaginatedResponse<KBResource>>(
++      `/knowledge-bases/${kbId}/resources?${params}`,
++    );
++    all.push(...page.data);
++    cursor = page.next_cursor ?? null;
++  } while (cursor);
++
++  // Recurse into directories to get nested files
++  const dirs = all.filter((r) => r.inode_type === 'directory');
++  const nested = await Promise.all(
++    dirs.map((d) => {
++      const name = d.inode_path.path.split('/').pop() ?? d.inode_path.path;
++      const subPath = resourcePath === '/' ? `/${name}` : `${resourcePath}/${name}`;
++      return fetchKBResourcesRecursive(kbId, subPath);
++    }),
++  );
++
++  return [...all, ...nested.flat()];
++}
++
+ /**
+  * Fetches all pages of KB resources with indexed status.
+  * Polls every 1s while any resource is in "pending" status or the list is
+  * empty — stops automatically once all resources reach a terminal state.
+  */
+-export function useKBResources(kbId: string | undefined, resourcePath: string = '/') {
++export function useKBResources(
++  kbId: string | undefined,
++  resourcePath: string = '/',
++  hasActiveJobs: boolean = false,
++) {
+   // KB API requires resource_path to start with '/'
+   const normalizedPath = resourcePath.startsWith('/') ? resourcePath : `/${resourcePath}`;
+   return useQuery({
+     queryKey: resourceKeys.kbResourceList(kbId ?? '', normalizedPath),
+     queryFn: async (): Promise<KBResource[]> => {
+-      const all: KBResource[] = [];
+-      let cursor: string | null = null;
+-
+-      do {
+-        const params = new URLSearchParams({ resource_path: normalizedPath });
+-        if (cursor) params.set('cursor', cursor);
+-
+-        const page = await apiFetch<PaginatedResponse<KBResource>>(
+-          `/knowledge-bases/${kbId}/resources?${params}`,
+-        );
+-        all.push(...page.data);
+-        cursor = page.next_cursor ?? null;
+-      } while (cursor);
+-
+-      return all;
++      return fetchKBResourcesRecursive(kbId!, normalizedPath);
+     },
+     enabled: !!kbId,
+     staleTime: 5 * 60 * 1000,
+     // Auto-poll while resources are being indexed.
+-    // Also poll when the list is empty — the KB may not list resources immediately
+-    // after sync/trigger fires (async server-side processing takes a moment).
+-    // Stop ONLY when every resource has reached 'indexed' — checking for 'pending'
+-    // alone misses undocumented transitional states the API may return (e.g. 'resource',
+-    // 'queued', 'processing'). This covers the full documented + undocumented lifecycle.
++    // Guard: only poll on empty data when there are active indexing jobs —
++    // prevents infinite polling on paths that will never get KB resources.
++    // Stop when every resource has reached 'indexed'.
+     refetchInterval: (query) => {
+       const data = query.state.data;
+       if (!data) return false;
+-      if (data.length === 0) return 1000;
+-      return data.every((r) => r.status === 'indexed') ? false : 1000;
++      if (data.length === 0) return hasActiveJobs ? 1000 : false;
++      const files = data.filter((r) => r.inode_type === 'file');
++      if (files.length === 0) return hasActiveJobs ? 1000 : false;
++      return files.every((r) => r.status === 'indexed' || r.status === 'parsed') ? false : 1000;
+     },
+     select: (data): Resource[] =>
+       data.map(toResource).sort((a, b) => {
+diff --git a/src/hooks/useResourceMerge.ts b/src/hooks/useResourceMerge.ts
+index cd195d6..184f492 100644
+--- a/src/hooks/useResourceMerge.ts
++++ b/src/hooks/useResourceMerge.ts
+@@ -4,29 +4,20 @@ import type { Resource, ResourceStatus } from '@/types/resource';
+ 
+ export type StatusFilter = 'all' | 'indexed' | 'not-indexed';
+ 
+-/** Indexing lifecycle priority — higher = further along. */
+-function statusPriority(s: ResourceStatus): number {
+-  if (s === 'indexed') return 3;
+-  if (s === 'pending') return 2;
+-  if (s === 'resource') return 1;
+-  return 0; // null
+-}
+-
+ /**
+- * Merges connection resources with KB status + optimistic local overrides,
++ * Merges connection resources with KB status + per-resourceId display overrides,
+  * applies a visibility filter, and computes counts.
+  *
+- * Merge rule: take whichever status is further along the indexing lifecycle
+- * (indexed > pending > resource > null). This handles every transition cleanly:
+- *  - local 'pending' + server null → pending (server hasn't caught up)
+- *  - local 'pending' + server 'indexed' → indexed (server confirmed)
+- *  - local 'indexed' + server 'pending' → indexed (suppress flicker)
++ * Merge rule (ISS-11 fix):
++ *  - Server 'indexed' always wins (confirmed by KB)
++ *  - If tracked by getDisplayStatus → show tracked status (pending/error)
++ *  - Otherwise → server status
+  */
+ export function useResourceMerge(
+   connectionResources: Resource[],
+   kbResources: Resource[],
+   hiddenResourceIds: ReadonlySet<string>,
+-  localStatuses: Map<string, ResourceStatus>,
++  getDisplayStatus: (resourceId: string) => ResourceStatus,
+ ) {
+   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+ 
+@@ -38,14 +29,14 @@ export function useResourceMerge(
+       .filter((r) => !hiddenResourceIds.has(r.resourceId))
+       .map((r) => {
+         const serverStatus = statusById.get(r.resourceId) ?? statusByName.get(r.name) ?? r.status;
+-        const localStatus = localStatuses.get(r.name);
+-        const status =
+-          localStatus !== undefined && statusPriority(localStatus) > statusPriority(serverStatus)
+-            ? localStatus
+-            : serverStatus;
++        // Server confirmed done always wins — no local override can contradict it
++        if (serverStatus === 'indexed' || serverStatus === 'parsed') return { ...r, status: 'indexed' as const };
++
++        const displayStatus = getDisplayStatus(r.resourceId);
++        const status = displayStatus ?? serverStatus;
+         return { ...r, status };
+       });
+-  }, [connectionResources, kbResources, hiddenResourceIds, localStatuses]);
++  }, [connectionResources, kbResources, hiddenResourceIds, getDisplayStatus]);
+ 
+   const indexedCount = useMemo(
+     () => resources.filter((r) => r.status === 'indexed').length,
+diff --git a/src/lib/fetchFolderChildren.ts b/src/lib/fetchFolderChildren.ts
+index d70bc3b..a414189 100644
+--- a/src/lib/fetchFolderChildren.ts
++++ b/src/lib/fetchFolderChildren.ts
+@@ -4,15 +4,16 @@ import { toResource } from '@/types/resource';
+ import type { PaginatedResponse } from '@/types/api';
+ import type { ConnectionResource, Resource } from '@/types/resource';
+ 
++export type ChildResource = Resource & { parentId: string };
++
+ /**
+  * Recursively fetches ALL descendants of a folder (files + subfolders at every level).
+- * The backend processes individual files in parallel, whereas a single folder ID
+- * is processed sequentially.
++ * Each resource carries `parentId` — the resourceId of its immediate parent folder.
+  */
+ export async function fetchFolderChildren(
+   connectionId: string,
+   folderId: string,
+-): Promise<Resource[]> {
++): Promise<ChildResource[]> {
+   const all: ConnectionResource[] = [];
+   let cursor: string | null = null;
+ 
+@@ -26,7 +27,10 @@ export async function fetchFolderChildren(
+     cursor = page.next_cursor ?? null;
+   } while (cursor);
+ 
+-  const resources = all.map(toResource);
++  const resources: ChildResource[] = all.map((raw) => ({
++    ...toResource(raw),
++    parentId: folderId,
++  }));
+   const subfolders = resources.filter((r) => r.type === 'folder');
+   const nested = await Promise.all(
+     subfolders.map((sf) => fetchFolderChildren(connectionId, sf.resourceId)),
+diff --git a/src/types/resource.ts b/src/types/resource.ts
+index e414944..cea4384 100644
+--- a/src/types/resource.ts
++++ b/src/types/resource.ts
+@@ -55,7 +55,19 @@ export type Connection = z.infer<typeof ConnectionSchema>;
+ // --- Internal UI shapes ---
+ 
+ export type ResourceType = 'file' | 'folder';
+-export type ResourceStatus = 'indexed' | 'pending' | 'resource' | null;
++export type ResourceStatus = 'indexed' | 'parsed' | 'pending' | 'resource' | 'error' | null;
++
++/** Tracks a resource submitted for indexing (keyed by resourceId, never by name). */
++export type SubmittedEntry = {
++  name: string;
++  status: 'pending' | 'indexed' | 'error';
++  type: ResourceType;
++  /** ID of the immediate parent folder (used for subfolder status derivation). */
++  parentId: string;
++  /** The root resource (folder or file) the user clicked "Index" on. */
++  jobRootId: string;
++  submittedAt: number;
++};
+ 
+ export type Resource = {
+   resourceId: string;
+diff --git a/vitest.config.ts b/vitest.config.ts
+index db723f3..8ad885d 100644
+--- a/vitest.config.ts
++++ b/vitest.config.ts
+@@ -6,8 +6,7 @@ import tsconfigPaths from 'vite-tsconfig-paths';
+ export default defineConfig({
+   plugins: [tsconfigPaths()],
+   test: {
+-    // Only run integration tests — no unit/component tests yet
+-    include: ['tests/integration/**/*.test.ts'],
++    include: ['tests/**/*.test.ts'],
+     globals: true,
+     // Real HTTP calls need generous timeouts
+     testTimeout: 30_000,

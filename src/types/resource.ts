@@ -55,7 +55,19 @@ export type Connection = z.infer<typeof ConnectionSchema>;
 // --- Internal UI shapes ---
 
 export type ResourceType = 'file' | 'folder';
-export type ResourceStatus = 'indexed' | 'pending' | 'resource' | null;
+export type ResourceStatus = 'indexed' | 'parsed' | 'pending' | 'resource' | 'error' | null;
+
+/** Tracks a resource submitted for indexing (keyed by resourceId, never by name). */
+export type SubmittedEntry = {
+  name: string;
+  status: 'pending' | 'indexed' | 'error';
+  type: ResourceType;
+  /** ID of the immediate parent folder (used for subfolder status derivation). */
+  parentId: string;
+  /** The root resource (folder or file) the user clicked "Index" on. */
+  jobRootId: string;
+  submittedAt: number;
+};
 
 export type Resource = {
   resourceId: string;
