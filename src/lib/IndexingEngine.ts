@@ -1,3 +1,28 @@
+/**
+ * @file IndexingEngine.ts — Pure indexing state machine.
+ *
+ * ── Architecture exception ──────────────────────────────────────────────
+ * This file intentionally deviates from project conventions:
+ *
+ *  1. PascalCase filename — exports a class, not a utility function.
+ *  2. Class instead of plain functions — the engine is a stateful machine
+ *     with ~10 tightly-coupled transitions sharing private state (_entries,
+ *     _deindexedIds, _mutationSeq). A class keeps invariants co-located
+ *     and prevents accidental misuse vs a bag of functions + a mutable object.
+ *  3. >250 lines (~340) — splitting the state machine across files would
+ *     scatter transitions that must be understood together (markPending →
+ *     expandFolder → resolveFromKBData → deindex). 69 unit tests validate
+ *     correctness as a single unit.
+ *  4. Co-located types (FolderChild, SubmissionPlan) and utilities
+ *     (isKBDone, getFileDescendants) — used exclusively by this engine
+ *     and its tests. Moving them adds indirection with no consumer benefit.
+ *  5. INDEXING_TIMEOUT_MS defined here, not in constants.ts — it is an
+ *     engine-internal knob used only by getDisplayStatus/resolveTimeouts.
+ *
+ * Reviewed: 2026-03-07. Revisit if the engine is split or consumers multiply.
+ * ────────────────────────────────────────────────────────────────────────
+ */
+
 import type { Resource, ResourceStatus, ResourceType, SubmittedEntry } from '@/types/resource';
 
 /** KB API terminal success statuses — 'parsed' is the real status, 'indexed' for compatibility. */
