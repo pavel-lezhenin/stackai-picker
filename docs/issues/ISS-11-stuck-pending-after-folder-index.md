@@ -300,3 +300,179 @@ permanent pending badge.
 | `src/hooks/useActionButtonHandlers.ts`       | `onDeindex(id, path)` signature                                  |
 | `src/hooks/useBatchActions.ts`               | Pass `resourceId` to `handleDeindex`                             |
 | `src/components/file-picker/FileBrowser.tsx` | Update `onDeindex` prop                                          |
+
+---
+
+## 8. Revised Solution: Derived Folder Status + IndexingJob Tracker
+
+### 8.1 Core Principle
+
+Folders and unprocessable files will NEVER receive `indexed` from the server.
+Their status is **derived** from their children — computed client-side.
+
+This eliminates the root cause: we no longer wait for a server signal that
+will never come.
+
+### 8.2 Hypotheses to Verify (via integration tests)
+
+Before implementing, four API behavior hypotheses must be confirmed:
+
+| #   | Hypothesis                                                              | Test                                            |
+| --- | ----------------------------------------------------------------------- | ----------------------------------------------- |
+| H1  | KB API never returns `status: 'indexed'` for `inode_type: 'directory'`  | Index folder → poll → check directory entries   |
+| H2  | Unprocessable files (`.DS_Store`) are completely absent from KB         | Index folder with mixed content → compare lists |
+| H3  | `resource_path=/folderName` returns children of that folder             | Poll KB at sub-path → check response            |
+| H4  | When all files are `indexed`, root-level folder entry is also `indexed` | Wait for full indexing → check root entries     |
+
+Test file: `tests/integration/api/folder-indexing-lifecycle.test.ts`
+
+### 8.2.1 Verified Results (2026-03-07)
+
+Test run against real Stack AI API. Folder: `acme` (5 PDF/CSV files, 0 subfolders).
+
+| #   | Hypothesis                                            | Result                                              | Evidence                                                                                                                    |
+| --- | ----------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| H1  | Directories never get `status: 'indexed'`             | **✅ CONFIRMED**                                    | `acme` directory at root has `status: undefined` (not even `null`) after all 5 children are `indexed`                       |
+| H2  | Unprocessable files are absent from KB                | **⚠️ INCONCLUSIVE** (no `.DS_Store` in test folder) | All 5 submitted files appeared in KB with `indexed`. Need test with unprocessable files to confirm.                         |
+| H3  | `resource_path=/folderName` returns children          | **✅ CONFIRMED**                                    | `resource_path=/acme` returned all 5 files with `indexed` status. Sub-path polling works.                                   |
+| H4  | Root dirs become `indexed` when all children are done | **❌ REJECTED**                                     | Root dir `acme` has `status: undefined` even after all 5 files at `/acme` are `indexed`. **Directories NEVER get indexed.** |
+
+#### Critical Discovery: Root poll is broken by design
+
+The ISS-11 section 5.4 approach (`kbDoneIndexing = kbRootResources.every(r => r.status === 'indexed')`)
+**will NEVER resolve** because root contains a directory entry with `status: undefined`.
+
+`[].every(...)` returns `true` (vacuous truth), but `[{status: undefined}].every(r => r.status === 'indexed')` returns `false` — permanently.
+
+This proves the derived-status approach (Section 8.3+) is the **only** viable solution:
+
+- Poll at the **subfolder level** (`resource_path=/folderName`) where actual files live
+- Compute folder status from children — server will never provide it
+- Use `data.filter(r => r.inode_type === 'file')` for completion checks — ignore directories in every()/some() checks
+
+#### API Behavior Summary
+
+```
+KB Root (resource_path=/):
+  directory  status=undefined  acme          ← NEVER becomes 'indexed'
+
+KB Sub-path (resource_path=/acme):
+  file       status=indexed    acme/ACME_Earnings_Report_Q2_2024.pdf
+  file       status=indexed    acme/ACME_Inc_Customer_Data.csv
+  file       status=indexed    acme/ACME_Information_Security_Policies.pdf
+  file       status=indexed    acme/ACME_Investment_Committee_Memo_Q3_2024.pdf
+  file       status=indexed    acme/ACME_Knowledge_Base_RFP_Responses.pdf
+```
+
+Root only contains directory nodes. Files are ONLY visible at sub-paths.
+
+### 8.3 Data Model
+
+```typescript
+/** Tracks one indexing operation (user clicked "Index" on a file or folder) */
+type IndexingJob = {
+  /** Unique job identifier */
+  jobId: string;
+  /** The resource the user clicked Index on */
+  rootResourceId: string;
+  rootResourceName: string;
+  rootResourceType: 'file' | 'folder';
+  /** All FILES submitted to KB (flattened from folder hierarchy) */
+  submittedFiles: Map<string, SubmittedFile>;
+  /** All FOLDERS in the hierarchy (for derived status) */
+  submittedFolders: Map<string, SubmittedFolder>;
+  /** Timestamp of mutation onSuccess — timeout starts here */
+  startedAt: number;
+  /** Last time a new file transitioned to 'indexed' — for progress-based timeout */
+  lastProgressAt: number;
+  /** kbId returned by the create mutation */
+  kbId: string;
+};
+
+type SubmittedFile = {
+  name: string;
+  path: string;
+  parentFolderId: string;
+  resolvedStatus: 'pending' | 'indexed' | 'error';
+};
+
+type SubmittedFolder = {
+  name: string;
+  path: string;
+  parentFolderId: string | null; // null = root folder user clicked
+  childFileIds: string[];
+  childFolderIds: string[];
+  resolvedStatus: 'pending' | 'indexed' | 'error';
+};
+```
+
+### 8.4 Resolution Algorithm
+
+Resolution runs on EVERY KB poll response, independent of navigation:
+
+1. **Update files from server**: if KB has resourceId with `'indexed'` → set resolved
+2. **Detect skipped** (all-siblings-done): if every KB resource is `'indexed'`,
+   any submitted file absent from KB → `'error'`
+3. **Timeout fallback** (progress-based, 60s): if no progress for 60s →
+   remaining pending files → `'error'`
+4. **Resolve folders** (bottom-up): sort by depth, if all children resolved →
+   folder = `'indexed'` if any child indexed, else `'error'`
+5. **Check job done**: if root resource resolved → emit notifications → cleanup
+
+### 8.5 Polling Strategy
+
+**CRITICAL (from H1/H4 results):** Root poll at `resource_path=/` returns only
+directory entries with `status: undefined`. It **cannot** be used as a completion
+signal. Files only appear at sub-paths like `/acme`.
+
+KB poll must track the **submitted folder paths**, not just root:
+
+- For each submitted folder, poll `resource_path=/<folderName>` to get file statuses
+- For nested folders, poll recursively: `/<parent>/<child>`
+- Resolution checks only `inode_type === 'file'` entries — directories are skipped
+- `refetchInterval` guard: `data.length === 0` returns `1000` only if
+  `hasActiveJob`, else `false` (fixes infinite poll bug)
+- Completion signal: all **files** (not directories) at all tracked paths are `indexed`
+
+```typescript
+// Poll per submitted folder path — NOT root
+const pathsToTrack = [...job.submittedFolders.values()].map((f) => f.path);
+// e.g. ['/acme', '/acme/subfolder']
+
+for (const path of pathsToTrack) {
+  const { data } = useKBResources(kbId, path, !!job);
+  // Only check files — directories have status=undefined always
+  const files = data?.filter((r) => r.type === 'file') ?? [];
+  // Update resolution from these files...
+}
+```
+
+### 8.6 Navigation Safety
+
+| State                 | Stored in                        | Survives navigation?   |
+| --------------------- | -------------------------------- | ---------------------- |
+| `IndexingJob`         | `useState` in `useIndexing`      | ✅ Yes                 |
+| `connectionResources` | TanStack Query cache by folderId | ✅ Cached              |
+| `kbRootResources`     | TanStack Query, always at `/`    | ✅ Never changes       |
+| `kbCurrentResources`  | TanStack Query, follows nav      | Changes (display only) |
+
+Merge uses `resourceId` lookup into the job — works at any navigation level.
+
+### 8.7 `'error'` Status in UI
+
+Add `'error'` to `ResourceStatus`. `StatusBadge` renders error as a red badge
+with retry button. Retry re-submits that single file to the KB.
+
+### 8.8 Files Changed (Revised)
+
+| File                                         | Change                                                        |
+| -------------------------------------------- | ------------------------------------------------------------- |
+| `src/types/resource.ts`                      | Add `'error'` to `ResourceStatus`                             |
+| `src/hooks/useIndexing.ts`                   | Replace `localStatuses` with `IndexingJob` + resolution logic |
+| `src/hooks/useResourceMerge.ts`              | Replace `statusPriority` with `getDisplayStatus` from job     |
+| `src/hooks/useKnowledgeBase.ts`              | Add `hasActiveJob` param to guard empty-list polling          |
+| `src/hooks/useFileBrowser.ts`                | Two KB queries (root + current), pass job to merge            |
+| `src/hooks/useActionButtonHandlers.ts`       | `onDeindex(resourceId, path)` signature                       |
+| `src/hooks/useBatchActions.ts`               | Pass `resourceId` to deindex                                  |
+| `src/components/file-picker/StatusBadge.tsx` | Render `'error'` variant with retry                           |
+| `src/components/file-picker/FileBrowser.tsx` | Wire `onDeindex`, `onRetry` props                             |
