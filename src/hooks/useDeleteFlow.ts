@@ -55,23 +55,26 @@ export function useDeleteFlow(kbId: string | undefined) {
     });
   }, [deleteTarget, deleteMutation]);
 
-  // Intentional: individual mutate() calls per item. Each deletion has its own
-  // optimistic hide + independent rollback on error — a single mutateAsync/Promise.all
-  // would make rollback all-or-nothing, worse UX for partial failures.
+  // Use mutateAsync + Promise.allSettled so all deletions run concurrently.
+  // Optimistic hides are applied up-front; each item rolls back independently on error.
+  // Error toasts are handled by useDeleteKBResource's onError — catch only unwinds local state.
   const handleBatchDelete = useCallback(
-    (items: { resourceId: string; path: string }[]) => {
-      for (const item of items) {
-        setHiddenResourceIds((prev) => new Set([...prev, item.resourceId]));
-        deleteMutation.mutate(item.path, {
-          onError: () => {
+    async (items: { resourceId: string; path: string }[]) => {
+      setHiddenResourceIds((prev) => new Set([...prev, ...items.map((item) => item.resourceId)]));
+
+      await Promise.allSettled(
+        items.map(async (item) => {
+          try {
+            await deleteMutation.mutateAsync(item.path);
+          } catch {
             setHiddenResourceIds((prev) => {
               const next = new Set(prev);
               next.delete(item.resourceId);
               return next;
             });
-          },
-        });
-      }
+          }
+        }),
+      );
     },
     [deleteMutation],
   );
