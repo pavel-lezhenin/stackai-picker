@@ -161,18 +161,36 @@ Four test suites hit the **real Stack AI API** and systematically verify every e
 | `knowledge-bases.test.ts` | Full KB lifecycle: create → sync → list resources → delete. ISS-5/6/7/8/9/10 |
 | `pagination.test.ts`      | Cursor field nullability, auth boundary enforcement (401 without token)      |
 
-These tests discovered **10 bugs** in the provided API documentation and environment (see `docs/issues/`), including 5 blockers (wrong domain, missing path prefix, incorrect endpoint names). Each bug is documented with a `[DOCS BUG]` assertion that proves the documented behavior fails, and a `[FIX]` assertion that proves the corrected behavior works.
+These tests discovered **11 bugs** in the provided API documentation and environment (see `docs/issues/`), including 5 blockers (wrong domain, missing path prefix, incorrect endpoint names). Each bug is documented with a `[DOCS BUG]` assertion that proves the documented behavior fails, and a `[FIX]` assertion that proves the corrected behavior works.
 
 **Why integration tests first?** The Stack AI API reference contained significant inaccuracies. Integration tests were the fastest way to pin down the real contract — every ISS-\* issue was found by a failing test assertion, not by browser debugging.
+
+### IndexingEngine behavioral tests (Vitest)
+
+```bash
+npx vitest run tests/behavioral/
+```
+
+**69 tests** covering the `IndexingEngine` state machine — the core logic that tracks pending → indexed → error lifecycle for files and folders. No mocks or stubs: the engine is a pure state machine with no I/O, tested by calling methods directly and asserting state.
+
+| File                     | Categories                                   | Tests |
+| ------------------------ | -------------------------------------------- | ----- |
+| `utilities.test.ts`      | `isKBDone`, `getFileDescendants`             | 9     |
+| `indexing-basic.test.ts` | A (single resource), B (display status)      | 12    |
+| `indexing-flows.test.ts` | C (sequential), D (concurrent), E (batch)    | 10    |
+| `error-recovery.test.ts` | F (errors & recovery), G (edge cases)        | 10    |
+| `resolution.test.ts`     | I (mutation sequences), J (resolution rules) | 11    |
+| `deindex.test.ts`        | H (basics), K (advanced), M (interactions)   | 17    |
+
+Key scenarios covered: folder expansion with nested subfolders, timeout → error transitions, Rule 2 sibling-based error detection, deindex cascade (folder removes all children), deindex + re-index interactions, stale KB cache prevention via `deindexedIds`. See `tests/behavioral/indexing-engine/indexing-scenarios.md` for full scenario descriptions.
 
 ### Next testing layers
 
 | Priority | Layer           | Stack                    | Scope                                                                      |
 | -------- | --------------- | ------------------------ | -------------------------------------------------------------------------- |
 | 1        | BFF route tests | Vitest + MSW             | Auth caching, error mapping, Zod validation — isolated from live API       |
-| 2        | Unit tests      | Vitest                   | Pure logic: `useSortAndFilter`, `useSelection`, file-type mapping          |
-| 3        | Component tests | Vitest + Testing Library | FileRow states, keyboard nav, aria attributes, skeleton→content transition |
-| 4        | E2E flows       | Playwright               | Full user journeys: browse → index → verify status → de-index → delete     |
+| 2        | Component tests | Vitest + Testing Library | FileRow states, keyboard nav, aria attributes, skeleton→content transition |
+| 3        | E2E flows       | Playwright               | Full user journeys: browse → index → verify status → de-index → delete     |
 
 ---
 
@@ -240,7 +258,7 @@ Six role-specific agents covering distinct review disciplines:
 | `ACCEPTANCE_CRITERIA.md` | Three-tier quality bar: Baseline (must pass), Quality (must excel), WOW (differentiators). Keeps the bar visible.            |
 | `API_REFERENCE.md`       | Stack AI API docs — augmented with corrections discovered during testing (see ISS-\* issues below).                          |
 | `FEATURES.md`            | All implemented features, grouped by area.                                                                                   |
-| `issues/`                | 10 documented bugs in the provided API/docs environment, each with ISS-number, severity, reproduction steps, and workaround. |
+| `issues/`                | 11 documented bugs in the provided API/docs environment, each with ISS-number, severity, reproduction steps, and workaround. |
 
 > **Why this structure?** The docs directory replaces a PM, QA team, and sprint board — they show _how_ I work, not just _what_ I built. Every feature is traceable from requirement → story → acceptance criteria → committed code.
 
