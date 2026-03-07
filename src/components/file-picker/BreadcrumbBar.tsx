@@ -92,6 +92,10 @@ export const BreadcrumbBar = memo(function BreadcrumbBar({
           })}
         </BreadcrumbList>
       </Breadcrumb>
+
+      <h1 className="hidden md:block ml-auto text-sm font-medium text-muted-foreground shrink-0">
+        Stack AI File Picker
+      </h1>
     </div>
   );
 });

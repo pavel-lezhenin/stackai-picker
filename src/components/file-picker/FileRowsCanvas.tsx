@@ -18,6 +18,7 @@ type FileRowsCanvasProps = {
   onIndex: (resource: Resource) => void;
   onDeindex: (resourceId: string, path: string) => void;
   onToggleSelect: (id: string, shiftKey: boolean) => void;
+  onSelectAll: () => void;
 };
 
 export const FileRowsCanvas = memo(function FileRowsCanvas({
@@ -32,6 +33,7 @@ export const FileRowsCanvas = memo(function FileRowsCanvas({
   onIndex,
   onDeindex,
   onToggleSelect,
+  onSelectAll,
 }: FileRowsCanvasProps) {
   return (
     <>
@@ -55,6 +57,7 @@ export const FileRowsCanvas = memo(function FileRowsCanvas({
           onIndex={onIndex}
           onDeindex={onDeindex}
           onToggleSelect={onToggleSelect}
+          onSelectAll={onSelectAll}
         />
       ))}
     </>

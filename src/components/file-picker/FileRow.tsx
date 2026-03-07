@@ -37,6 +37,7 @@ type FileRowProps = {
   onIndex: (resource: Resource) => void;
   onDeindex: (resourceId: string, path: string) => void;
   onToggleSelect: (resourceId: string, shiftKey: boolean) => void;
+  onSelectAll: () => void;
 };
 
 export const FileRow = memo(function FileRow({
@@ -57,6 +58,7 @@ export const FileRow = memo(function FileRow({
   onIndex,
   onDeindex,
   onToggleSelect,
+  onSelectAll,
 }: FileRowProps) {
   const { icon: Icon, label: iconLabel } = getFileTypeIcon(name, type);
   const isFolder = type === 'folder';
@@ -85,6 +87,7 @@ export const FileRow = memo(function FileRow({
       onIndex={onIndex}
       onDeindex={onDeindex}
       onDelete={onDelete}
+      onSelectAll={onSelectAll}
     >
       <div
         role="row"

@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, FolderOpen, Trash2, X } from 'lucide-react';
+import { Check, CheckCheck, FolderOpen, Trash2, X } from 'lucide-react';
 
 import {
   ContextMenu,
@@ -24,6 +24,7 @@ type FileRowContextMenuProps = {
   onIndex: (resource: Resource) => void;
   onDeindex: (resourceId: string, path: string) => void;
   onDelete: (resourceId: string, name: string, path: string) => void;
+  onSelectAll?: () => void;
 };
 
 export function FileRowContextMenu({
@@ -38,6 +39,7 @@ export function FileRowContextMenu({
   onIndex,
   onDeindex,
   onDelete,
+  onSelectAll,
 }: FileRowContextMenuProps) {
   const isNotIndexed = status === null || status === 'resource';
   const isPending = status === 'pending';
@@ -80,6 +82,16 @@ export function FileRowContextMenu({
             >
               <Trash2 className="h-3.5 w-3.5 mr-2" />
               Remove from listing
+            </ContextMenuItem>
+          </>
+        )}
+
+        {onSelectAll && (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem onClick={onSelectAll}>
+              <CheckCheck className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+              Select all
             </ContextMenuItem>
           </>
         )}
