@@ -98,10 +98,10 @@ export function FileList({
   }
 
   return (
-    <div role="grid" aria-label="File list" className="flex flex-col flex-1">
+    <div role="grid" aria-label="File list" className="flex flex-col flex-1 min-h-0">
       {/* Both bars are always mounted to prevent layout shift on swap.
           CSS visibility + pointer-events toggle instead of conditional render. */}
-      <div className="relative h-10 border-b border-border">
+      <div className="relative h-10 border-b border-border shrink-0">
         <div
           className={cn(
             'absolute inset-0 transition-opacity duration-150',
@@ -145,29 +145,32 @@ export function FileList({
         onSelectAll={onSelectAll}
       />
 
-      {isLoading && <FileListSkeleton />}
+      <div className="flex-1 overflow-y-auto" onContextMenu={(e) => e.preventDefault()}>
+        {isLoading && <FileListSkeleton />}
 
-      {!isLoading && resources.length === 0 && debouncedQuery && (
-        <NoSearchResults query={debouncedQuery} onClear={onClearSearch} />
-      )}
+        {!isLoading && resources.length === 0 && debouncedQuery && (
+          <NoSearchResults query={debouncedQuery} onClear={onClearSearch} />
+        )}
 
-      {!isLoading && resources.length > 0 && (
-        <DragSelectContainer onSelect={onDragSelect} onClearSelection={onClearSelection}>
-          <FileRowsCanvas
-            resources={resources}
-            debouncedQuery={debouncedQuery}
-            deletingId={deletingId}
-            pendingDeleteId={pendingDeleteId}
-            isIndexing={isIndexing}
-            selected={selected}
-            onNavigate={onNavigate}
-            onDelete={onDelete}
-            onIndex={onIndex}
-            onDeindex={onDeindex}
-            onToggleSelect={onToggleSelect}
-          />
-        </DragSelectContainer>
-      )}
+        {!isLoading && resources.length > 0 && (
+          <DragSelectContainer onSelect={onDragSelect} onClearSelection={onClearSelection}>
+            <FileRowsCanvas
+              resources={resources}
+              debouncedQuery={debouncedQuery}
+              deletingId={deletingId}
+              pendingDeleteId={pendingDeleteId}
+              isIndexing={isIndexing}
+              selected={selected}
+              onNavigate={onNavigate}
+              onDelete={onDelete}
+              onIndex={onIndex}
+              onDeindex={onDeindex}
+              onToggleSelect={onToggleSelect}
+              onSelectAll={onSelectAll}
+            />
+          </DragSelectContainer>
+        )}
+      </div>
     </div>
   );
 }

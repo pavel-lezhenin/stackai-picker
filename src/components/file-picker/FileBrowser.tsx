@@ -57,49 +57,45 @@ export function FileBrowser() {
         onBreadcrumbClick={handleBreadcrumbClickWithReset}
       />
 
-      <div
-        className="flex-1 flex flex-col overflow-y-scroll"
-        onContextMenu={(e) => e.preventDefault()}
-      >
-        {!isError && <StatusFilterBar value={statusFilter} onChange={setStatusFilter} />}
-        <FileList
-          resources={sortedResources}
-          isLoading={isLoading}
-          isError={isError}
-          errorMessage={errorMessage}
-          deletingId={deletingId}
-          pendingDeleteId={deleteFlow.isDeletePending ? deletingId : null}
-          indexedCount={indexedCount}
-          totalCount={totalCount}
-          isIndexing={batch.isIndexing}
-          sort={sort}
-          searchQuery={searchQuery}
-          debouncedQuery={debouncedQuery}
-          onToggleSort={toggleSort}
-          onSearchChange={handleSearchChange}
-          onClearSearch={clearSearch}
-          selected={selected}
-          allSelected={allSelected}
-          someSelected={someSelected}
-          selectionCount={selectionCount}
-          onToggleSelect={toggleSelect}
-          onSelectAll={selectAll}
-          onNavigate={handleNavigateWithReset}
-          onDelete={deleteFlow.handleDelete}
-          onIndex={batch.handleIndex}
-          onDeindex={batch.handleDeindex}
-          onRetry={handleRetry}
-          onBatchIndex={batch.handleBatchIndex}
-          onBatchDeindex={batch.handleBatchDeindex}
-          onBatchDelete={batch.handleBatchDelete}
-          canBatchIndex={batch.canBatchIndex}
-          canBatchDeindex={batch.canBatchDeindex}
-          canBatchDelete={batch.canBatchDelete}
-          hasSelectable={hasSelectable}
-          onDragSelect={selectRange}
-          onClearSelection={clearSelection}
-        />
-      </div>
+      {!isError && <StatusFilterBar value={statusFilter} onChange={setStatusFilter} />}
+
+      <FileList
+        resources={sortedResources}
+        isLoading={isLoading}
+        isError={isError}
+        errorMessage={errorMessage}
+        deletingId={deletingId}
+        pendingDeleteId={deleteFlow.isDeletePending ? deletingId : null}
+        indexedCount={indexedCount}
+        totalCount={totalCount}
+        isIndexing={batch.isIndexing}
+        sort={sort}
+        searchQuery={searchQuery}
+        debouncedQuery={debouncedQuery}
+        onToggleSort={toggleSort}
+        onSearchChange={handleSearchChange}
+        onClearSearch={clearSearch}
+        selected={selected}
+        allSelected={allSelected}
+        someSelected={someSelected}
+        selectionCount={selectionCount}
+        onToggleSelect={toggleSelect}
+        onSelectAll={selectAll}
+        onNavigate={handleNavigateWithReset}
+        onDelete={deleteFlow.handleDelete}
+        onIndex={batch.handleIndex}
+        onDeindex={batch.handleDeindex}
+        onRetry={handleRetry}
+        onBatchIndex={batch.handleBatchIndex}
+        onBatchDeindex={batch.handleBatchDeindex}
+        onBatchDelete={batch.handleBatchDelete}
+        canBatchIndex={batch.canBatchIndex}
+        canBatchDeindex={batch.canBatchDeindex}
+        canBatchDelete={batch.canBatchDelete}
+        hasSelectable={hasSelectable}
+        onDragSelect={selectRange}
+        onClearSelection={clearSelection}
+      />
     </div>
   );
 }
