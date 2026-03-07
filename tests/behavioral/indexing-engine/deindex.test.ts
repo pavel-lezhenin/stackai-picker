@@ -416,5 +416,83 @@ describe('IndexingEngine', () => {
 
       expect(engine.getDisplayStatus('f3', clock + 1000)).toBe('pending');
     });
+
+    it('K9: batch deindex multiple standalone files — all deindexedIds tracked', () => {
+      const files = [
+        mkResource('f1', 'a.txt', 'file'),
+        mkResource('f2', 'b.txt', 'file'),
+        mkResource('f3', 'c.txt', 'file'),
+      ];
+      engine.markPending(files, clock);
+      engine.trackSubmittedFiles(files);
+      engine.resolveFromKBData(
+        [mkKBFile('f1', 'a.txt'), mkKBFile('f2', 'b.txt'), mkKBFile('f3', 'c.txt')],
+        clock,
+      );
+
+      // Batch deindex all three
+      engine.deindex('f1');
+      engine.deindex('f2');
+      engine.deindex('f3');
+
+      // Every file removed from tracking
+      expect(engine.entries.size).toBe(0);
+      expect(engine.allSubmittedResources.size).toBe(0);
+
+      // Every file added to deindexedIds (prevents stale KB override)
+      expect(engine.deindexedIds.has('f1')).toBe(true);
+      expect(engine.deindexedIds.has('f2')).toBe(true);
+      expect(engine.deindexedIds.has('f3')).toBe(true);
+    });
+
+    it('K10: batch deindex across multiple folders — each folder cleaned independently', () => {
+      const acme = mkResource('acme', 'acme', 'folder');
+      const books = mkResource('books', 'books', 'folder');
+      engine.markPending([acme, books], clock);
+      engine.expandFolder(
+        'acme',
+        mkChildren('acme', [
+          { id: 'a1', name: 'report.pdf' },
+          { id: 'a2', name: 'data.csv' },
+        ]),
+        clock,
+      );
+      engine.expandFolder(
+        'books',
+        mkChildren('books', [
+          { id: 'b1', name: 'ch1.txt' },
+          { id: 'b2', name: 'ch2.txt' },
+        ]),
+        clock,
+      );
+      engine.resolveFromKBData(
+        [
+          mkKBFile('a1', 'report.pdf'),
+          mkKBFile('a2', 'data.csv'),
+          mkKBFile('b1', 'ch1.txt'),
+          mkKBFile('b2', 'ch2.txt'),
+        ],
+        clock,
+      );
+
+      // Batch deindex acme folder (cascade) + one file from books
+      engine.deindex('acme');
+      engine.deindex('b1');
+
+      // Acme children gone
+      expect(engine.getDisplayStatus('a1', clock)).toBeNull();
+      expect(engine.getDisplayStatus('a2', clock)).toBeNull();
+      expect(engine.getDisplayStatus('acme', clock)).toBeNull();
+      // b1 gone, b2 still indexed
+      expect(engine.getDisplayStatus('b1', clock)).toBeNull();
+      expect(engine.getDisplayStatus('b2', clock)).toBe('indexed');
+      expect(engine.getDisplayStatus('books', clock)).toBe('indexed');
+
+      // All removed IDs tracked for stale KB prevention
+      expect(engine.deindexedIds.has('a1')).toBe(true);
+      expect(engine.deindexedIds.has('a2')).toBe(true);
+      expect(engine.deindexedIds.has('b1')).toBe(true);
+      expect(engine.deindexedIds.has('b2')).toBe(false);
+    });
   });
 });
