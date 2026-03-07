@@ -807,10 +807,39 @@ All scenarios start from a **fresh page reload** unless noted otherwise.
 **Expected:**
 
 - `engine.deindex('acme')` — removes folder from `_entries`
-- But children (`report.pdf`, `data.csv`) may still be tracked with `jobRootId: 'acme'`
-- `getDisplayStatus('acme')` derives from children via `jobRootId` — may still show "Indexed"
-- **Question**: should deindex folder also deindex all children? Currently it does NOT.
-- API call with folder's `resource_path` — server behavior for folder deindex unclear
+- Children (`report.pdf`, `data.csv`) are also removed via `jobRootId` match
+- All child IDs added to `_deindexedIds` (prevents stale KB cache override)
+- `getDisplayStatus('acme')` returns `null`
+- API call with folder's `resource_path`
+
+### K9: Batch deindex multiple standalone files — deindexedIds tracking
+
+**Steps:**
+
+1. Index standalone files `a.txt`, `b.txt`, `c.txt` → all "Indexed"
+2. Batch deindex all three (loop: `engine.deindex()` per file)
+
+**Expected:**
+
+- All entries removed from `_entries` and `_allSubmittedResources`
+- Every ID present in `deindexedIds` (prevents stale KB cache override)
+- `entries.size === 0`, `allSubmittedResources.size === 0`
+- `getDisplayStatus` returns `null` for all three
+
+### K10: Batch deindex across multiple folders — independent cleanup
+
+**Steps:**
+
+1. Index `acme/` (2 files) and `books/` (2 files) → all "Indexed"
+2. Deindex `acme/` folder (cascade removes children)
+3. Deindex `b1` from `books/` (single file)
+
+**Expected:**
+
+- `acme/` and its children (`a1`, `a2`): removed, `deindexedIds` tracked
+- `b1` removed from `books/`: `deindexedIds` tracked
+- `b2` still "Indexed" (unaffected sibling)
+- `books/` folder still shows "Indexed" (has one indexed child)
 
 ---
 

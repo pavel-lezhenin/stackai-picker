@@ -29,7 +29,7 @@ export function DragSelectContainer({
   return (
     <div
       ref={containerRef}
-      className="relative transition-opacity duration-200"
+      className="relative flex-1 transition-opacity duration-200"
       onMouseDown={handleMouseDown}
     >
       {dragRect && <DragOverlay rect={dragRect} />}

@@ -130,7 +130,7 @@ type Resource = { type: 'file'; status: ResourceStatus; ... }
 
 #### Skeleton Dimensions Matching
 
-Skeleton loaders use the exact same grid template, row height, and element sizes as loaded content (e.g., checkbox skeleton is 16×16 with `rounded-[4px]`, status badge skeleton is `h-5 w-16`).
+Skeleton loaders use the exact same grid template, row height, and element sizes as loaded content (e.g., checkbox skeleton is 16×16 with `rounded-[4px]`, status badge skeleton is `h-4 w-16`).
 
 **Why?** CLS (Cumulative Layout Shift) is a measurable user trust signal. Enterprise users in banking/government notice when content "jumps" — it feels unreliable. Matching dimensions means zero layout shift when data loads.
 

@@ -21,7 +21,7 @@ export function FileListSkeleton() {
             <Skeleton className="h-4 w-4 shrink-0 rounded" />
             <Skeleton className="h-4 w-[60%]" />
           </div>
-          <Skeleton className="h-4 w-24 rounded-full" />
+          <Skeleton className="h-4 w-16 rounded-full" />
           <Skeleton className="h-4 w-[80px]" />
           <div className="flex items-center justify-end gap-0.5">
             <Skeleton className="h-4 w-12 rounded" />

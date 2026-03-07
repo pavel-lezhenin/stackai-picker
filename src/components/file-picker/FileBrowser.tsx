@@ -57,10 +57,11 @@ export function FileBrowser() {
         onBreadcrumbClick={handleBreadcrumbClickWithReset}
       />
 
-      <div className="flex-1 overflow-y-scroll">
-        {!isLoading && !isError && sortedResources.length > 0 && (
-          <StatusFilterBar value={statusFilter} onChange={setStatusFilter} />
-        )}
+      <div
+        className="flex-1 flex flex-col overflow-y-scroll"
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        {!isError && <StatusFilterBar value={statusFilter} onChange={setStatusFilter} />}
         <FileList
           resources={sortedResources}
           isLoading={isLoading}

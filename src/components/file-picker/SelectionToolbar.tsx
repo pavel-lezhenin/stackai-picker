@@ -22,7 +22,7 @@ export function SelectionToolbar({
   onBatchDelete,
 }: SelectionToolbarProps) {
   return (
-    <div className="flex items-center gap-2 px-4 h-10 border-b border-border bg-primary/5 transition-colors">
+    <div className="flex items-center gap-2 px-4 h-10 bg-primary/5 transition-colors">
       <span className="text-sm font-medium">{selectionCount} selected</span>
       <div className="flex-1" />
       <Button
