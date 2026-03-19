@@ -21,7 +21,12 @@ import type { Resource, ResourceStatus, SubmittedEntry } from '@/types/resource'
  *   - Serialized queue for rapid-fire mutations
  */
 export function useIndexing(connectionId: string | undefined, orgId: string | undefined) {
-  const engineRef = useRef(new IndexingEngine());
+  const engineRef = useRef<IndexingEngine | null>(null);
+  if (engineRef.current === null) {
+    engineRef.current = new IndexingEngine();
+  }
+  // Always non-null after lazy init above — safe to unwrap once here
+  const engine = engineRef.current!;
 
   // React state mirror of engine — drives re-renders
   const [submittedIds, setSubmittedIds] = useState<Map<string, SubmittedEntry>>(new Map());
@@ -34,9 +39,9 @@ export function useIndexing(connectionId: string | undefined, orgId: string | un
 
   /** Flush engine state into React state. */
   const syncState = useCallback(() => {
-    setSubmittedIds(engineRef.current.snapshot());
-    setDeindexedIds(new Set(engineRef.current.deindexedIds));
-    const engineKbId = engineRef.current.kbId;
+    setSubmittedIds(engine.snapshot());
+    setDeindexedIds(new Set(engine.deindexedIds));
+    const engineKbId = engine.kbId;
     setKbId((prev) => (engineKbId !== prev ? engineKbId : prev));
   }, []);
 
@@ -49,7 +54,7 @@ export function useIndexing(connectionId: string | undefined, orgId: string | un
   /** Returns the display status for a resource. Delegates to engine. */
   const getDisplayStatus = useCallback(
     (resourceId: string): ResourceStatus => {
-      return engineRef.current.getDisplayStatus(resourceId);
+      return engine.getDisplayStatus(resourceId);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [submittedIds],
@@ -58,7 +63,7 @@ export function useIndexing(connectionId: string | undefined, orgId: string | un
   /** Updates submitted entries from KB poll data. */
   const resolveFromKBData = useCallback(
     (kbResources: Resource[]) => {
-      const changed = engineRef.current.resolveFromKBData(kbResources);
+      const changed = engine.resolveFromKBData(kbResources);
       if (changed) syncState();
     },
     [syncState],
@@ -66,7 +71,7 @@ export function useIndexing(connectionId: string | undefined, orgId: string | un
 
   /** Force-resolve any timed-out file entries. */
   const resolveTimeouts = useCallback(() => {
-    const changed = engineRef.current.resolveTimeouts();
+    const changed = engine.resolveTimeouts();
     if (changed) syncState();
   }, [syncState]);
 
@@ -78,7 +83,6 @@ export function useIndexing(connectionId: string | undefined, orgId: string | un
       if (!connectionId || !orgId) return;
       if (resources.length === 0) return;
 
-      const engine = engineRef.current;
       setIsPendingIndex(true);
 
       // Build alreadyIndexed via engine (dedup across rapid-fire mutations)
@@ -189,7 +193,7 @@ export function useIndexing(connectionId: string | undefined, orgId: string | un
   const handleIndex = useCallback(
     (resources: Resource[], kbResources: Resource[]) => {
       // Show pending immediately (optimistic UI feedback)
-      engineRef.current.markPending(resources);
+      engine.markPending(resources);
       syncState();
 
       // Intentional: markPending is called again inside executeIndex to reset
@@ -202,7 +206,7 @@ export function useIndexing(connectionId: string | undefined, orgId: string | un
 
   const handleDeindex = useCallback(
     (resourceId: string, path: string) => {
-      engineRef.current.deindex(resourceId);
+      engine.deindex(resourceId);
       syncState();
       deleteMutation.mutate(path);
     },
