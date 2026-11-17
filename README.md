@@ -2,8 +2,6 @@
 
 A custom Google Drive File Picker built for the [Stack AI](https://www.stack-ai.com/) platform. Browse, select, index, and manage Google Drive files and folders to build Knowledge Bases — all through an enterprise-grade UI.
 
-> **[Live Demo](https://stackai-picker-topaz.vercel.app)**
-
 ## Contents
 
 - [Features](#features)
